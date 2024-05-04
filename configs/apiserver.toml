@@ -1,5 +1,3 @@
 ServerAddr = "127.0.0.1:8080"
 LogLevel = "Debug"
-
-[store]
-DB_url = "host=localhost dbname=restapi sslmode=disable"
+database_url = "host=localhost dbname=restapi sslmode=disable"

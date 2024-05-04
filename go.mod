@@ -1,4 +1,4 @@
-module github.com/PepsiKingIV/Lib_REST_API_server
+module github.com/Quantum-calculators/MSU_UserService
 
 go 1.22.0
 

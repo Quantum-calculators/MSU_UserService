@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/BurntSushi/toml"
-	"github.com/PepsiKingIV/Lib_REST_API_server/internal/apiserver"
+	"github.com/Quantum-calculators/MSU_UserService/internal/apiserver"
 )
 
 var (
@@ -25,8 +25,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	s := apiserver.New(config)
-	if err := s.Start(); err != nil {
+	if err := apiserver.Start(config); err != nil {
 		log.Fatal(err)
 	}
 }

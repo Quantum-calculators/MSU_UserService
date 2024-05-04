@@ -7,7 +7,7 @@ import (
 )
 
 // test handle
-func (s *APIServer) HandleHello() http.HandlerFunc {
+func (s *server) HandleHello() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		HTML := `<!DOCTYPE html>
 		<html lang="en">
@@ -22,10 +22,11 @@ func (s *APIServer) HandleHello() http.HandlerFunc {
 		</html>
 		`
 		w.Write([]byte(HTML))
+		s.logger.Infof("%s\t%s", r.Method, r.URL)
 	}
 }
 
-func (s *APIServer) TestHandler() http.HandlerFunc {
+func (s *server) TestHandler() http.HandlerFunc {
 	type TestPostRequests struct {
 		UserID int64  `json:"user_id"`
 		Text   string `json:"text"`
@@ -33,10 +34,12 @@ func (s *APIServer) TestHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &TestPostRequests{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			fmt.Print(err)
+			fmt.Println(err)
 			w.Write([]byte(err.Error()))
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
 		fmt.Println(req)
+		s.logger.Infof("%s\t%s", r.Method, r.URL)
 	}
 }

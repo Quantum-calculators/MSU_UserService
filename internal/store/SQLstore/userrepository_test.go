@@ -1,25 +1,28 @@
-package store_test
+package SQLstore_test
 
 import (
 	"testing"
 
-	"github.com/PepsiKingIV/Lib_REST_API_server/internal/model"
-	"github.com/PepsiKingIV/Lib_REST_API_server/internal/store"
+	"github.com/Quantum-calculators/MSU_UserService/internal/model"
+	"github.com/Quantum-calculators/MSU_UserService/internal/store/SQLstore"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserRepository_Create(t *testing.T) {
-	s, teardown := store.TestStore(t, databaseURL)
+	db, teardown := SQLstore.TestDB(t, databaseURL)
 	defer teardown("users")
 
-	err := s.User().Create(model.TestUser(t))
-	assert.NoError(t, err)
+	s := SQLstore.New(db)
+	u := model.TestUser(t)
+	assert.NoError(t, s.User().Create(u))
+	assert.NotNil(t, u)
 }
 
 func TestUserRepository_FindByEmail(t *testing.T) {
-	s, teardown := store.TestStore(t, databaseURL)
+	db, teardown := SQLstore.TestDB(t, databaseURL)
 	defer teardown("users")
 
+	s := SQLstore.New(db)
 	email := "testuser@test.com"
 	_, err := s.User().FindByEmail(email)
 	assert.Error(t, err)

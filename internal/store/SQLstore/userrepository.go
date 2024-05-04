@@ -1,23 +1,29 @@
-package store
+package SQLstore
 
-import "github.com/PepsiKingIV/Lib_REST_API_server/internal/model"
+import (
+	"database/sql"
+
+	"github.com/Quantum-calculators/MSU_UserService/internal/model"
+	"github.com/Quantum-calculators/MSU_UserService/internal/store"
+)
 
 type UserRepository struct {
 	store *Store
 }
 
 func (r *UserRepository) Create(u *model.User) error {
-	if err := u.BeforeCreate(); err != nil {
-		return nil
+	if err := u.Validate(); err != nil {
+		return err
 	}
-	if err := r.store.db.QueryRow(
+
+	if err := u.BeforeCreate(); err != nil {
+		return err
+	}
+	return r.store.db.QueryRow(
 		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
 		u.Email,
 		u.EncryptedPassword,
-	).Scan(&u.ID); err != nil {
-		return err
-	}
-	return nil
+	).Scan(&u.ID)
 }
 
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
@@ -29,6 +35,9 @@ func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 		&u.Email,
 		&u.EncryptedPassword,
 	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, store.ErrRecordNotFound
+		}
 		return nil, err
 	}
 	return u, nil

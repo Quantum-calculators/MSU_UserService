@@ -3,7 +3,7 @@ package model_test
 import (
 	"testing"
 
-	"github.com/PepsiKingIV/Lib_REST_API_server/internal/model"
+	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/stretchr/testify/assert"
 )
 

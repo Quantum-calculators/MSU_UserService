@@ -1,59 +1,32 @@
 package apiserver
 
 import (
+	"database/sql"
 	"net/http"
 
-	"github.com/PepsiKingIV/Lib_REST_API_server/internal/store"
-	"github.com/sirupsen/logrus"
+	"github.com/Quantum-calculators/MSU_UserService/internal/store/SQLstore"
 )
 
-type APIServer struct {
-	config *Config
-	logger *logrus.Logger
-	router *http.ServeMux
-	store  *store.Store
-}
-
-func New(config *Config) *APIServer {
-	return &APIServer{
-		config: config,
-		logger: logrus.New(),
-		router: http.NewServeMux(),
-	}
-}
-
-func (s *APIServer) Start() error {
-	if err := s.configureLogger(); err != nil {
-		return err
-	}
-	s.ConfigureRouter()
-
-	if err := s.configureStore(); err != nil {
-		return err
-	}
-	s.logger.Info("startung api server")
-	return http.ListenAndServe(s.config.ServerAddr, s.router)
-}
-
-func (s *APIServer) configureLogger() error {
-	level, err := logrus.ParseLevel(s.config.LogLevel)
+func Start(config *Config) error {
+	db, err := newDB(config.DatabaseURL)
 	if err != nil {
 		return err
 	}
-	s.logger.SetLevel(level)
-	return nil
+	defer db.Close()
+
+	store := SQLstore.New(db)
+	srv := newServer(store)
+
+	return http.ListenAndServe(config.ServerAddr, srv)
 }
 
-func (s *APIServer) configureStore() error {
-	st := store.New(s.config.Store)
-	if err := st.Open(); err != nil {
-		return err
+func newDB(DatabaseURL string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", DatabaseURL)
+	if err != nil {
+		return nil, err
 	}
-	s.store = st
-	return nil
-}
-
-func (s *APIServer) ConfigureRouter() {
-	s.router.HandleFunc("/", s.HandleHello())
-	s.router.HandleFunc("/test", s.TestHandler())
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	return db, nil
 }
