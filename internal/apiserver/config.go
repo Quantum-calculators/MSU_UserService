@@ -3,7 +3,8 @@ package apiserver
 type Config struct {
 	ServerAddr  string `toml:"ServerAddr"`
 	LogLevel    string `toml:"LogLevel"`
-	DatabaseURL string `toml:"database_url"`
+	DatabaseURL string `toml:"SQLdb_url"`
+	Redis       string `toml:"Redis"`
 }
 
 func NewConfig() *Config {

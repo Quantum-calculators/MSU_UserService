@@ -10,7 +10,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	databaseURL = os.Getenv("DB_url")
+	databaseURL = os.Getenv("SQLdb_url")
 	if databaseURL == "" {
 		databaseURL = "host=localhost dbname=restapi_test sslmode=disable"
 	}
