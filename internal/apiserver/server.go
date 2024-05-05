@@ -8,16 +8,18 @@ import (
 )
 
 type server struct {
-	router *http.ServeMux
-	logger *logrus.Logger
-	store  store.Store
+	router   *http.ServeMux
+	logger   *logrus.Logger
+	store    store.Store
+	jwtstore store.JWTStore
 }
 
-func newServer(store store.Store) *server {
+func newServer(store store.Store, jwtstore store.JWTStore) *server {
 	s := &server{
-		router: http.NewServeMux(),
-		logger: logrus.New(),
-		store:  store,
+		router:   http.NewServeMux(),
+		logger:   logrus.New(),
+		store:    store,
+		jwtstore: jwtstore,
 	}
 
 	s.ConfigureRouter()

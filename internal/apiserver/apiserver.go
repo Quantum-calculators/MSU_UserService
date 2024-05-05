@@ -1,26 +1,33 @@
 package apiserver
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
+	"time"
 
+	"github.com/Quantum-calculators/MSU_UserService/internal/store/RedisStore"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store/SQLstore"
+	"github.com/redis/go-redis/v9"
 )
 
 func Start(config *Config) error {
-	db, err := newDB(config.DatabaseURL)
+	SQLdb, err := newSQLdb(config.DatabaseURL)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer SQLdb.Close()
 
-	store := SQLstore.New(db)
-	srv := newServer(store)
+	ctx := context.Background()
+	rdb, err := newRedisdb(ctx, config.RedisAddr, config.RedisPas, time.Minute*30)
+	jwtstore := RedisStore.New(rdb)
+	store := SQLstore.New(SQLdb)
+	srv := newServer(store, jwtstore)
 
 	return http.ListenAndServe(config.ServerAddr, srv)
 }
 
-func newDB(DatabaseURL string) (*sql.DB, error) {
+func newSQLdb(DatabaseURL string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", DatabaseURL)
 	if err != nil {
 		return nil, err
@@ -29,4 +36,16 @@ func newDB(DatabaseURL string) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+func newRedisdb(ctx context.Context, Arrd, Password string, exp time.Duration) (*redis.Client, error) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     Arrd,
+		Password: Password,
+	})
+	err := rdb.Set(ctx, "key", "value", time.Minute*1).Err()
+	if err != nil {
+		return nil, err
+	}
+	return rdb, nil
 }

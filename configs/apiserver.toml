@@ -1,4 +1,5 @@
 ServerAddr = "127.0.0.1:8080"
 LogLevel = "Debug"
 SQLdb_url = "host=localhost dbname=restapi sslmode=disable"
-Redis = "localhost:6379"
+RedisAddr = "localhost:6379"
+RedisPas = ""

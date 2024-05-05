@@ -4,7 +4,8 @@ type Config struct {
 	ServerAddr  string `toml:"ServerAddr"`
 	LogLevel    string `toml:"LogLevel"`
 	DatabaseURL string `toml:"SQLdb_url"`
-	Redis       string `toml:"Redis"`
+	RedisAddr   string `toml:"RedisAddr"`
+	RedisPas    string `toml:"RedisPas"`
 }
 
 func NewConfig() *Config {
