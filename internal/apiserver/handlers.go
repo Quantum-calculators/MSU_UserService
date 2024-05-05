@@ -21,6 +21,7 @@ func (s *server) HandleHello() http.HandlerFunc {
 		</body>
 		</html>
 		`
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(HTML))
 		s.logger.Infof("%s\t%s", r.Method, r.URL)
 	}
@@ -35,11 +36,13 @@ func (s *server) TestHandler() http.HandlerFunc {
 		req := &TestPostRequests{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			fmt.Println(err)
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
 			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
 		fmt.Println(req)
 		s.logger.Infof("%s\t%s", r.Method, r.URL)
+		w.WriteHeader(http.StatusOK)
 	}
 }
