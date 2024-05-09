@@ -8,7 +8,7 @@ type UserRepository interface {
 }
 
 type JWTRepository interface {
-	CreateAccessToken() (string, error)
+	CreateAccessToken(string) (string, error)
 	CreateRefeshToken() (string, error)
 	UpdateAccessToken() (string, error)
 	UpdateRefreshToken() (string, error)
