@@ -46,3 +46,21 @@ func (s *server) TestHandler() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 	}
 }
+
+func (s *server) TestRedis() http.HandlerFunc {
+	type TestPostRequests struct {
+		Text string `json:"text"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := &TestPostRequests{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			fmt.Println(err)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+		accessToken, _ := s.Rstore.JWT().CreateAccessToken()
+		w.Write([]byte(accessToken))
+	}
+}

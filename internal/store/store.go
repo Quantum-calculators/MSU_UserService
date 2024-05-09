@@ -4,5 +4,6 @@ type Store interface {
 	User() UserRepository
 }
 
-type JWTStore interface {
+type RedisStore interface {
+	JWT() JWTRepository
 }

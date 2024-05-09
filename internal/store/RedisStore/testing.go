@@ -9,15 +9,14 @@ import (
 
 var ctx = context.Background()
 
-func TestRedis(t *testing.T, RedisAddr string) *redis.Client {
+func TestRedis(t *testing.T, redisaddr string) {
 	t.Helper()
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr: RedisAddr,
+		Addr: redisaddr,
 	})
 	err := rdb.Set(ctx, "key", "value", 0).Err()
 	if err != nil {
 		t.Fatal(err)
 	}
-	return rdb
 }

@@ -19,10 +19,10 @@ func Start(config *Config) error {
 	defer SQLdb.Close()
 
 	ctx := context.Background()
-	rdb, err := newRedisdb(ctx, config.RedisAddr, config.RedisPas, time.Minute*30)
-	jwtstore := RedisStore.New(rdb)
-	store := SQLstore.New(SQLdb)
-	srv := newServer(store, jwtstore)
+	rdb, err := newRedisdb(ctx, config.RedisAddr, config.RedisPas)
+	Rstore := RedisStore.New(rdb)
+	sqlstore := SQLstore.New(SQLdb)
+	srv := newServer(sqlstore, Rstore)
 
 	return http.ListenAndServe(config.ServerAddr, srv)
 }
@@ -38,7 +38,7 @@ func newSQLdb(DatabaseURL string) (*sql.DB, error) {
 	return db, nil
 }
 
-func newRedisdb(ctx context.Context, Arrd, Password string, exp time.Duration) (*redis.Client, error) {
+func newRedisdb(ctx context.Context, Arrd, Password string) (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     Arrd,
 		Password: Password,

@@ -6,3 +6,10 @@ type UserRepository interface {
 	Create(*model.User) error
 	FindByEmail(string) (*model.User, error)
 }
+
+type JWTRepository interface {
+	CreateAccessToken() (string, error)
+	CreateRefeshToken() (string, error)
+	UpdateAccessToken() (string, error)
+	UpdateRefreshToken() (string, error)
+}
