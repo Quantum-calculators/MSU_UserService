@@ -7,8 +7,8 @@ type UserRepository interface {
 	FindByEmail(string) (*model.User, error)
 }
 
-type JWTRepository interface {
-	CreateAccessToken(string) (string, error)
+type CacheRepository interface {
+	CreateAccessToken() (string, error)
 	CreateRefeshToken() (string, error)
 	UpdateAccessToken() (string, error)
 	UpdateRefreshToken() (string, error)

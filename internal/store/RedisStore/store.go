@@ -1,7 +1,6 @@
 package RedisStore
 
 import (
-	"context"
 	"time"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
@@ -9,28 +8,25 @@ import (
 )
 
 type Store struct {
-	client        *redis.Client
-	JWTRepository *jwtRepository
-	ctx           *context.Context
+	client *redis.Client
+	cache  *CacheRepository
 }
 
 func New(client *redis.Client) *Store {
 	return &Store{
 		client: client,
-		ctx:    &ctx,
 	}
 }
 
-func (s *Store) JWT(jwtSecretKey []byte, accessExpTime time.Duration) store.JWTRepository {
-	if s.JWTRepository != nil {
-		return s.JWTRepository
+func (s *Store) Cache(accessExpTime time.Duration) store.CacheRepository {
+	if s.cache != nil {
+		return s.cache
 	}
 
-	s.JWTRepository = &jwtRepository{
+	s.cache = &CacheRepository{
 		store:         s,
-		jwtSecretKey:  jwtSecretKey,
 		accessExpTime: accessExpTime,
 	}
 
-	return s.JWTRepository
+	return s.cache
 }
