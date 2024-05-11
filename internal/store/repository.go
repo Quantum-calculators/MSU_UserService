@@ -8,8 +8,6 @@ type UserRepository interface {
 }
 
 type CacheRepository interface {
-	CreateAccessToken() (string, error)
-	CreateRefeshToken() (string, error)
-	UpdateAccessToken() (string, error)
-	UpdateRefreshToken() (string, error)
+	Set() (string, error)
+	Get() (string, error)
 }

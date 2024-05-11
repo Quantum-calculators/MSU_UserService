@@ -9,18 +9,10 @@ type CacheRepository struct {
 	accessExpTime time.Duration
 }
 
-func (j *CacheRepository) CreateAccessToken() (string, error) {
-	return "testCreateAccessToken", nil
+func (j *CacheRepository) Set() (string, error) {
+	return "", nil
 }
 
-func (j *CacheRepository) CreateRefeshToken() (string, error) {
-	return "testCreateRefeshTokne", nil
-}
-
-func (j *CacheRepository) UpdateAccessToken() (string, error) {
-	return "testUpdateAccessToken", nil
-}
-
-func (j *CacheRepository) UpdateRefreshToken() (string, error) {
-	return "testUpdateRefreshToken", nil
+func (j *CacheRepository) Get() (string, error) {
+	return "", nil
 }

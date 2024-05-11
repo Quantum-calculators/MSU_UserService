@@ -7,5 +7,5 @@ type Store interface {
 }
 
 type RedisStore interface {
-	JWT(jwtSecretKey []byte, accessExpTime time.Duration) JWTRepository
+	Cache(accessExpTime time.Duration) CacheRepository
 }
