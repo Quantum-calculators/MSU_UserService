@@ -19,11 +19,15 @@ func ValidEmail(s string) bool {
 	return err == nil
 }
 
+func ValidPassword(s string) bool {
+	return len(s) > 8 && len(s) < 100
+}
+
 func (u *User) Validate() error {
-	if len(u.Email) == 0 || !ValidEmail(u.Email) {
+	if len(u.Email) == 0 && !ValidEmail(u.Email) {
 		return errors.New("invalid Email")
 	}
-	if len(u.Password) < 8 || len(u.Password) > 100 {
+	if !ValidPassword(u.Password) {
 		if len(u.EncryptedPassword) == 0 {
 			return errors.New("invalid Password")
 		}

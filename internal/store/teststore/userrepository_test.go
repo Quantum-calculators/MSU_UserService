@@ -30,3 +30,29 @@ func TestUserRepository_FindByEmail(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, u)
 }
+
+func TestUserRepository_UpdateEmail(t *testing.T) {
+	s := teststore.New()
+	u := model.TestUser(t)
+	newEmail := "newemail@test.com"
+	err := s.User().UpdatePassword(newEmail, u)
+	assert.NoError(t, err)
+
+	u2 := model.TestUser(t)
+	newEmailIncorrect := "IncorrectEmail"
+	err = s.User().UpdateEmail(newEmailIncorrect, u2)
+
+	assert.Error(t, err)
+}
+
+func TestUserRepository_UpdatePassword(t *testing.T) {
+	s := teststore.New()
+	u := model.TestUser(t)
+	newPas := "testPass12"
+	err := s.User().UpdatePassword(newPas, u)
+	assert.NoError(t, err)
+
+	newPasIncorrect := "incor" // len < 8
+	err = s.User().UpdatePassword(newPasIncorrect, u)
+	assert.Error(t, err)
+}
