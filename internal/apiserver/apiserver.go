@@ -20,6 +20,9 @@ func Start(config *Config) error {
 
 	ctx := context.Background()
 	rdb, err := newRedisdb(ctx, config.RedisAddr, config.RedisPas)
+	if err != nil {
+		return err
+	}
 	Rstore := RedisStore.New(rdb)
 	sqlstore := SQLstore.New(SQLdb)
 	srv := newServer(sqlstore, Rstore)

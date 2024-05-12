@@ -33,6 +33,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/", s.HandleHello())
-	s.router.HandleFunc("/test", s.TestHandler())
+	s.router.HandleFunc("/test", s.TestHandle())
 	s.router.HandleFunc("/testJWT", s.TestRedis())
+	s.router.HandleFunc("/auth", s.Registration())
 }
