@@ -2,6 +2,7 @@ package SQLstore
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
@@ -41,4 +42,29 @@ func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 		return nil, err
 	}
 	return u, nil
+}
+
+func (r *UserRepository) UpdateEmail(newEmail string, u *model.User) error {
+	if !model.ValidEmail(newEmail) {
+		return errors.New("not valid email")
+	}
+	if err := r.store.db.QueryRow("UPDATE users SET email = $1 WHERE email = $2", newEmail, u.Email).Err(); err != nil {
+		return err
+	}
+	u.Email = newEmail
+	return nil
+}
+
+func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
+	if !model.ValidPassword(password) {
+		return errors.New("not valid password")
+	}
+	u.Password = password
+	if err := u.BeforeCreate(); err != nil {
+		return err
+	}
+	if err := r.store.db.QueryRow("UPDATE users SET encrypted_password = $1 WHERE email = $2", u.EncryptedPassword, u.Email).Err(); err != nil {
+		return err
+	}
+	return nil
 }

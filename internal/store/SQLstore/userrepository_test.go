@@ -35,3 +35,35 @@ func TestUserRepository_FindByEmail(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, u)
 }
+
+func TestUserRepository_UpdateEmail(t *testing.T) {
+	db, teardown := SQLstore.TestDB(t, databaseURL)
+	defer teardown("users")
+	s := SQLstore.New(db)
+	u := model.TestUser(t)
+	s.User().Create(u)
+
+	newEmail := "newEmail@test.com"
+	err1 := s.User().UpdateEmail(newEmail, u)
+	assert.NoError(t, err1)
+
+	newEmailIncorrerct := "incorrectEmail"
+	err2 := s.User().UpdateEmail(newEmailIncorrerct, u)
+	assert.Error(t, err2)
+}
+
+func TestUserRepository_UpdatePassword(t *testing.T) {
+	db, teardown := SQLstore.TestDB(t, databaseURL)
+	defer teardown("users")
+	s := SQLstore.New(db)
+	u := model.TestUser(t)
+	s.User().Create(u)
+
+	newPassword := "CorrectPass"
+	err1 := s.User().UpdatePassword(newPassword, u)
+	assert.NoError(t, err1)
+
+	newPasswordIncor := "len<8"
+	err2 := s.User().UpdatePassword(newPasswordIncor, u)
+	assert.Error(t, err2)
+}
