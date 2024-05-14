@@ -8,9 +8,11 @@ import (
 )
 
 type User struct {
-	ID                int    `json:id`
+	ID                int    `json:"id"`
 	Email             string `json:"email"`
 	Password          string `json:"password,omitempty"`
+	RefreshToken      string `json:"refreshToken,omitempty"`
+	ExpRefreshToken   int    `json:"expRefreshToken,omitempty"`
 	EncryptedPassword string `json:"-"`
 }
 
@@ -46,6 +48,7 @@ func (u *User) BeforeCreate() error {
 	return nil
 }
 
+// Returns False if the passwords do not match
 func (u *User) ComparePassword(password string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(u.EncryptedPassword), []byte(password)) == nil
 }
