@@ -54,3 +54,9 @@ func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 	}
 	return nil
 }
+
+func (r *UserRepository) SetRefreshToken(refreshToken string, expRefreshToken int, u *model.User) error {
+	u.RefreshToken = refreshToken
+	u.ExpRefreshToken = expRefreshToken
+	return nil
+}

@@ -30,11 +30,13 @@ func (r *UserRepository) Create(u *model.User) error {
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 	u := &model.User{}
 	if err := r.store.db.QueryRow(
-		"SELECT id, email, encrypted_password FROM users WHERE email = $1", email,
+		"SELECT id, email, encrypted_password, refresh_token, exp_refresh_token FROM users WHERE email = $1", email,
 	).Scan(
 		&u.ID,
 		&u.Email,
 		&u.EncryptedPassword,
+		&u.RefreshToken,
+		&u.ExpRefreshToken,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, store.ErrRecordNotFound
@@ -63,7 +65,23 @@ func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 	if err := u.BeforeCreate(); err != nil {
 		return err
 	}
-	if err := r.store.db.QueryRow("UPDATE users SET encrypted_password = $1 WHERE email = $2", u.EncryptedPassword, u.Email).Err(); err != nil {
+	if err := r.store.db.QueryRow(
+		"UPDATE users SET encrypted_password = $1 WHERE email = $2",
+		u.EncryptedPassword,
+		u.Email,
+	).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *UserRepository) SetRefreshToken(refreshToken string, expRefreshToken int, u *model.User) error {
+	if err := r.store.db.QueryRow(
+		"UPDATE users SET refresh_token = $1, exp_refresh_token = $2 WHERE email = $3",
+		refreshToken,
+		expRefreshToken,
+		u.Email,
+	).Err(); err != nil {
 		return err
 	}
 	return nil

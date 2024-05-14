@@ -7,6 +7,7 @@ type UserRepository interface {
 	FindByEmail(string) (*model.User, error)
 	UpdateEmail(string, *model.User) error
 	UpdatePassword(string, *model.User) error
+	SetRefreshToken(string, int, *model.User) error
 }
 
 type CacheRepository interface {
