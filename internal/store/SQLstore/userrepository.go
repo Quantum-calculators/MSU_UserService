@@ -73,6 +73,20 @@ func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 	return nil
 }
 
+func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
+	u := model.User{}
+	if err := r.store.db.QueryRow(
+		"SELECT email, encrypted_password FROM users WHERE id = $1",
+		UserID,
+	).Scan(
+		&u.Email,
+		&u.EncryptedPassword,
+	); err != nil {
+		return &model.User{}, err
+	}
+	return &u, nil
+}
+
 // func (r *UserRepository) SetRefreshToken(refreshToken string, expRefreshToken int, u *model.User) error {
 // 	if err := r.store.db.QueryRow(
 // 		"UPDATE users SET refresh_token = $1, exp_refresh_token = $2 WHERE email = $3",

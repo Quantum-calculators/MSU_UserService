@@ -1,6 +1,7 @@
 package SQLstore_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
@@ -12,7 +13,7 @@ func TestUserRepository_Create(t *testing.T) {
 	db, teardown := SQLstore.TestDB(t, databaseURL)
 	defer teardown("users")
 
-	s := SQLstore.New(db)
+	s := SQLstore.New(db, 5)
 	u := model.TestUser(t)
 	assert.NoError(t, s.User().Create(u))
 	assert.NotNil(t, u)
@@ -22,7 +23,7 @@ func TestUserRepository_FindByEmail(t *testing.T) {
 	db, teardown := SQLstore.TestDB(t, databaseURL)
 	defer teardown("users")
 
-	s := SQLstore.New(db)
+	s := SQLstore.New(db, 5)
 	email := "testuser@test.com"
 	_, err := s.User().FindByEmail(email)
 	assert.Error(t, err)
@@ -39,7 +40,7 @@ func TestUserRepository_FindByEmail(t *testing.T) {
 func TestUserRepository_UpdateEmail(t *testing.T) {
 	db, teardown := SQLstore.TestDB(t, databaseURL)
 	defer teardown("users")
-	s := SQLstore.New(db)
+	s := SQLstore.New(db, 5)
 	u := model.TestUser(t)
 	s.User().Create(u)
 
@@ -55,7 +56,7 @@ func TestUserRepository_UpdateEmail(t *testing.T) {
 func TestUserRepository_UpdatePassword(t *testing.T) {
 	db, teardown := SQLstore.TestDB(t, databaseURL)
 	defer teardown("users")
-	s := SQLstore.New(db)
+	s := SQLstore.New(db, 5)
 	u := model.TestUser(t)
 	s.User().Create(u)
 
@@ -68,15 +69,17 @@ func TestUserRepository_UpdatePassword(t *testing.T) {
 	assert.Error(t, err2)
 }
 
-// func TestUserRepository_SetRefreshToken(t *testing.T) {
-// 	db, teardown := SQLstore.TestDB(t, databaseURL)
-// 	defer teardown("users")
-// 	s := SQLstore.New(db)
-// 	u := model.TestUser(t)
-// 	s.User().Create(u)
+func TestUserRepository_GetUserByID(t *testing.T) {
+	db, teardown := SQLstore.TestDB(t, databaseURL)
+	defer teardown("users")
+	s := SQLstore.New(db, 5)
+	u := model.TestUser(t)
+	s.User().Create(u)
+	fmt.Println(u.ID)
 
-// 	refreshToken := "testToken"
-// 	expRefreshToken := 1516239022
-// 	err := s.User().SetRefreshToken(refreshToken, expRefreshToken, u)
-// 	assert.NoError(t, err)
-// }
+	_, err1 := s.User().GetUserByID(u.ID)
+	assert.NoError(t, err1)
+
+	_, err2 := s.User().GetUserByID(2)
+	assert.Error(t, err2)
+}

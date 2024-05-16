@@ -57,11 +57,14 @@ func TestUserRepository_UpdatePassword(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// func TestUserRepository_SetRefreshToken(t *testing.T) {
-// 	s := teststore.New()
-// 	u := model.TestUser(t)
-// 	refreshToken := "testToken"
-// 	expRefreshToken := 123421512
-// 	err := s.User().SetRefreshToken(refreshToken, expRefreshToken, u)
-// 	assert.NoError(t, err)
-// }
+func TestUserRepository_GetUserByID(t *testing.T) {
+	s := teststore.New()
+	u := model.TestUser(t)
+	s.User().Create(u)
+
+	_, err1 := s.User().GetUserByID(u.ID)
+	assert.NoError(t, err1)
+
+	_, err2 := s.User().GetUserByID(2)
+	assert.Error(t, err2)
+}

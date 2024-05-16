@@ -55,6 +55,15 @@ func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 	return nil
 }
 
+func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
+	for _, j := range r.users {
+		if j.ID == UserID {
+			return j, nil
+		}
+	}
+	return &model.User{}, errors.New("user not found")
+}
+
 // func (r *UserRepository) SetRefreshToken(refreshToken string, expRefreshToken int, u *model.User) error {
 // 	u.RefreshToken = refreshToken
 // 	u.ExpRefreshToken = expRefreshToken
