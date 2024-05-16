@@ -35,4 +35,5 @@ func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/", s.HandleHello())
 	s.router.HandleFunc("/registration", s.Registration())
 	s.router.HandleFunc("/login", s.Login())
+	s.router.HandleFunc("/GAT", s.GetAccessToken())
 }

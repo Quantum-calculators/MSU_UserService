@@ -1,9 +1,8 @@
 package apiserver
 
 import (
-	"crypto/rand"
 	"encoding/json"
-	"math/big"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -37,26 +36,9 @@ func (s *server) HandleHello() http.HandlerFunc {
 	}
 }
 
-func GenerateRandomBytes(n int) ([]byte, error) {
-	b := make([]byte, n)
-	_, err := rand.Read(b)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
-func GenerateRandomString(n int) (string, error) {
-	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
-	ret := make([]byte, n)
-	for i := 0; i < n; i++ {
-		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
-		if err != nil {
-			return "", err
-		}
-		ret[i] = letters[num.Int64()]
-	}
-	return string(ret), nil
+func GetFingerPrint(r *http.Request) string {
+	fingerPrint := r.Header.Get("Accept-Language") + r.Header.Get("Sec-Ch-Ua-Platform") + r.Header.Get("User-Agent")
+	return fingerPrint
 }
 
 // TODO: добавить описание ошибок в ответе пользователю
@@ -67,8 +49,8 @@ func (s *server) Login() http.HandlerFunc {
 		Password string `json:"password"`
 	}
 	type response struct {
-		AccessToken  string `json:"accessToken"`
-		RefreshToken string `json:"refreshToken"`
+		RefreshToken    string `json:"refreshToken"`
+		ExpRefreshToken int    `json:"expRefreshToken"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &request{}
@@ -90,19 +72,62 @@ func (s *server) Login() http.HandlerFunc {
 			return
 		}
 		expectedU.Sanitize()
-
-		payload := jwt.MapClaims{
-			"sub": req.Email,
-			"exp": time.Now().Add(AccessTokenExp).Unix(),
-		}
-
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-		refreshToken, err := GenerateRandomString(128)
+		session, err := s.store.Session().CreateSession(uint32(expectedU.ID), GetFingerPrint(r))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
+		resp := response{
+			RefreshToken:    session.RefreshToken,
+			ExpRefreshToken: int(session.ExpiresIn),
+		}
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+		s.logger.Infof("%s\t%s", r.Method, r.URL)
+	}
+}
+
+func (s *server) GetAccessToken() http.HandlerFunc {
+	type request struct {
+		RefreshToken string `json:"refreshToken"`
+	}
+	type response struct {
+		AccessToken     string `json:"accessToken"`
+		RefreshToken    string `json:"refreshToken"`
+		ExpRefreshToken int    `json:"expRefreshToken"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+
+		session, err := s.store.Session().VerifyRefreshToken(GetFingerPrint(r), req.RefreshToken)
+		if err != nil {
+			w.WriteHeader(http.StatusNonAuthoritativeInfo)
+			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+		fmt.Println(session)
+		user, err := s.store.User().GetUserByID(int(session.UserId))
+		fmt.Println(user)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+		payload := jwt.MapClaims{
+			"sub": user.Email,
+			"exp": time.Now().Add(AccessTokenExp).Unix(),
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 		accessToken, err := token.SignedString([]byte(jwtSecretKey))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -110,19 +135,11 @@ func (s *server) Login() http.HandlerFunc {
 			return
 		}
 		resp := response{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
+			AccessToken:     accessToken,
+			RefreshToken:    session.RefreshToken,
+			ExpRefreshToken: int(session.ExpiresIn),
 		}
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
-			return
-		}
-		if err := s.store.User().SetRefreshToken(
-			refreshToken,
-			int(time.Now().Add(RefreshTokenExp).Unix()),
-			expectedU,
-		); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
@@ -166,12 +183,12 @@ func (s *server) Registration() http.HandlerFunc {
 	}
 }
 
-func (s *server) UserCheck() http.HandlerFunc {
-	type request struct {
-		AccessToken  string `json:"accessToken"`
-		RefreshToken string `json:"refreshToken"`
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
+// func (s *server) UserCheck() http.HandlerFunc {
+// 	type request struct {
+// 		AccessToken  string `json:"accessToken"`
+// 		RefreshToken string `json:"refreshToken"`
+// 	}
+// 	return func(w http.ResponseWriter, r *http.Request) {
 
-	}
-}
+// 	}
+// }

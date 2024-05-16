@@ -6,6 +6,8 @@ type Config struct {
 	DatabaseURL string `toml:"SQLdb_url"`
 	RedisAddr   string `toml:"RedisAddr"`
 	RedisPas    string `toml:"RedisPas"`
+	ExpRefresh  int    `toml:"ExpRefreshTokenInMin"`
+	ExpAccess   int    `toml:"ExpAccessTokenInMin"`
 }
 
 func NewConfig() *Config {
