@@ -11,7 +11,7 @@ type SessionRepository struct {
 	store *Store
 }
 
-func (s *SessionRepository) CreateSession(userId uint32, fingerpring string, ExpRefreshToken int) (*model.Session, error) {
+func (s *SessionRepository) CreateSession(userId uint32, fingerpring string) (*model.Session, error) {
 	refreshToken, err := token_generator.GenerateRandomString(128)
 	if err != nil {
 		return &model.Session{}, err
@@ -20,7 +20,7 @@ func (s *SessionRepository) CreateSession(userId uint32, fingerpring string, Exp
 		UserId:       userId,
 		RefreshToken: refreshToken,
 		Fingerprint:  fingerpring,
-		ExpiresIn:    time.Now().Add(time.Duration(6 * 10e10)).Unix(),
+		ExpiresIn:    time.Now().Add(time.Minute * time.Duration(s.store.ExpRefreshToken)).Unix(),
 		CreatedAt:    time.Now().Unix(),
 	}
 	if err := s.store.db.QueryRow(
@@ -38,21 +38,25 @@ func (s *SessionRepository) CreateSession(userId uint32, fingerpring string, Exp
 	return session, nil
 }
 
-func (s *SessionRepository) VerifyRefreshToken(userID int, fingerPrint, refreshToken string) (string, error) {
-	ID := 0
+func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string) (*model.Session, error) {
+	var ID int
+	var user_id int
 	if err := s.store.db.QueryRow(
-		"SELECT id FROM sessions WHERE user_id = $1 AND fingerprint = $2 AND refresh_token = $3;",
-		userID,
+		"SELECT id, user_id FROM sessions WHERE fingerprint = $1 AND refresh_token = $2;",
 		fingerPrint,
 		refreshToken,
 	).Scan(
 		&ID,
+		&user_id,
 	); err != nil {
-		return "", err
+		return &model.Session{}, err
 	}
-	newRefreshToken, err := token_generator.GenerateRandomString(128)
+	session, err := s.CreateSession(uint32(user_id), fingerPrint)
 	if err != nil {
-		return "", err
-	}
-	return newRefreshToken, nil
+		return &model.Session{}, err
+	} // TODO: добавить поле использован(t/f), чтобы проверять не украден ли токен.
+	return session, nil
 }
+
+// TODO: добавить удаление сессии по истечению
+// TODO: добавить /logout  (удалять сессию)

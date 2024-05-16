@@ -8,6 +8,7 @@ import (
 type Store struct {
 	userRepository    *UserRepository
 	sessionRepository *SessionRepository
+	ExpRefreshToken   int
 }
 
 func New() *Store {
@@ -34,7 +35,7 @@ func (s *Store) Session() store.SessionRepository {
 
 	s.sessionRepository = &SessionRepository{
 		store:    s,
-		sessions: make(map[uint32]*model.Session),
+		sessions: make(map[string]*model.Session),
 	}
 
 	return s.sessionRepository

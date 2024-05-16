@@ -11,11 +11,13 @@ type Store struct {
 	db                *sql.DB
 	userRepository    *UserRepository
 	sessionRepository *SessionRepository
+	ExpRefreshToken   int
 }
 
-func New(db *sql.DB) *Store {
+func New(db *sql.DB, expRefreshToken int) *Store {
 	return &Store{
-		db: db,
+		db:              db,
+		ExpRefreshToken: expRefreshToken,
 	}
 }
 

@@ -4,6 +4,7 @@ import "time"
 
 type Store interface {
 	User() UserRepository
+	Session() SessionRepository
 }
 
 type RedisStore interface {

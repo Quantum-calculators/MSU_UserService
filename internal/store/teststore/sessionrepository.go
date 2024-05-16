@@ -11,11 +11,11 @@ import (
 
 type SessionRepository struct {
 	store    *Store
-	sessions map[uint32]*model.Session
+	sessions map[string]*model.Session
 }
 
-func (s *SessionRepository) CreateSession(userId uint32, fingerpring string, ExpRefreshToken int) (*model.Session, error) {
-	refreshToken, err := token_generator.GenerateRandomString(128)
+func (s *SessionRepository) CreateSession(userId uint32, fingerpring string) (*model.Session, error) {
+	refreshToken, err := token_generator.GenerateRandomString(64)
 	if err != nil {
 		return &model.Session{}, err
 	}
@@ -26,20 +26,20 @@ func (s *SessionRepository) CreateSession(userId uint32, fingerpring string, Exp
 		ExpiresIn:    time.Now().Add(time.Duration(6 * 10e10)).Unix(),
 		CreatedAt:    time.Now().Unix(),
 	}
-	fmt.Println(session)
-	s.sessions[userId] = session
+	s.sessions[refreshToken] = session
 	return session, nil
 }
 
-func (s *SessionRepository) VerifyRefreshToken(userID int, fingerPrint, refreshToken string) (string, error) {
-	session := s.sessions[uint32(userID)]
-	newRefreshToken, err := token_generator.GenerateRandomString(128)
-	if err != nil {
-		return "", err
-	}
-	if session.Fingerprint == fingerPrint && session.RefreshToken == refreshToken {
-		return newRefreshToken, nil
+func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string) (*model.Session, error) {
+	fmt.Println(refreshToken)
+	session, ok := s.sessions[refreshToken]
+	if ok && session.Fingerprint == fingerPrint && session.RefreshToken == refreshToken {
+		newSession, err := s.CreateSession(uint32(session.UserId), fingerPrint)
+		if err != nil {
+			return &model.Session{}, err
+		}
+		return newSession, nil
 	} else {
-		return "", errors.New("invalid refresh token")
+		return &model.Session{}, errors.New("invalid refresh token")
 	}
 }

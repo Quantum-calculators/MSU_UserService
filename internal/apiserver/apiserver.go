@@ -24,7 +24,7 @@ func Start(config *Config) error {
 		return err
 	}
 	Rstore := RedisStore.New(rdb)
-	sqlstore := SQLstore.New(SQLdb)
+	sqlstore := SQLstore.New(SQLdb, config.ExpRefresh)
 	srv := newServer(sqlstore, Rstore)
 
 	return http.ListenAndServe(config.ServerAddr, srv)

@@ -16,7 +16,7 @@ func TestSessionRepository_CreateSession(t *testing.T) {
 	assert.NoError(t, s.User().Create(u))
 	session := model.TestSession(t)
 	fmt.Println(u)
-	_, err := s.Session().CreateSession(uint32(u.ID), session.Fingerprint, int(session.ExpiresIn))
+	_, err := s.Session().CreateSession(uint32(u.ID), session.Fingerprint)
 	assert.NoError(t, err)
 }
 
@@ -27,17 +27,12 @@ func TestSessionRepository_VerifyRefreshToken(t *testing.T) {
 	u := model.TestUser(t)
 	assert.NoError(t, s.User().Create(u))
 
-	session, err := s.Session().CreateSession(uint32(u.ID), session.Fingerprint, int(session.ExpiresIn))
+	session, err := s.Session().CreateSession(uint32(u.ID), session.Fingerprint)
 	assert.NoError(t, err)
 
-	_, err1 := s.Session().VerifyRefreshToken(u.ID, "invalidFingerprint", "invalidRefreshToken")
+	_, err1 := s.Session().VerifyRefreshToken("invalidFingerprint", "invalidRefreshToken")
 	assert.Error(t, err1)
 
-	_, err2 := s.Session().VerifyRefreshToken(u.ID, "invalidFingerprint", "invalidRefreshToken")
-	assert.Error(t, err2)
-
-	Fingerprint := "ru-RU.Chromium.macOS.Mozilla/5.0"
-
-	_, err3 := s.Session().VerifyRefreshToken(u.ID, Fingerprint, session.RefreshToken)
-	assert.NoError(t, err3)
+	_, err2 := s.Session().VerifyRefreshToken(session.Fingerprint, session.RefreshToken)
+	assert.NoError(t, err2)
 }
