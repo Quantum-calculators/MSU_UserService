@@ -57,11 +57,11 @@ func TestUserRepository_UpdatePassword(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestUserRepository_SetRefreshToken(t *testing.T) {
-	s := teststore.New()
-	u := model.TestUser(t)
-	refreshToken := "testToken"
-	expRefreshToken := 123421512
-	err := s.User().SetRefreshToken(refreshToken, expRefreshToken, u)
-	assert.NoError(t, err)
-}
+// func TestUserRepository_SetRefreshToken(t *testing.T) {
+// 	s := teststore.New()
+// 	u := model.TestUser(t)
+// 	refreshToken := "testToken"
+// 	expRefreshToken := 123421512
+// 	err := s.User().SetRefreshToken(refreshToken, expRefreshToken, u)
+// 	assert.NoError(t, err)
+// }

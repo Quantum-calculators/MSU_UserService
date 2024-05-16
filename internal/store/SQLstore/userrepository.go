@@ -73,14 +73,28 @@ func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 	return nil
 }
 
-func (r *UserRepository) SetRefreshToken(refreshToken string, expRefreshToken int, u *model.User) error {
-	if err := r.store.db.QueryRow(
-		"UPDATE users SET refresh_token = $1, exp_refresh_token = $2 WHERE email = $3",
-		refreshToken,
-		expRefreshToken,
-		u.Email,
-	).Err(); err != nil {
-		return err
-	}
-	return nil
-}
+// func (r *UserRepository) SetRefreshToken(refreshToken string, expRefreshToken int, u *model.User) error {
+// 	if err := r.store.db.QueryRow(
+// 		"UPDATE users SET refresh_token = $1, exp_refresh_token = $2 WHERE email = $3",
+// 		refreshToken,
+// 		expRefreshToken,
+// 		u.Email,
+// 	).Err(); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
+
+// func (r *UserRepository) GetUserByRefreshToken(UserRefreshToken string) (*model.User, error) {
+// 	u := &model.User{}
+// 	if err := r.store.db.QueryRow(
+// 		"SELECT id, email FROM users WHERE refresh_token = $1",
+// 		UserRefreshToken,
+// 	).Scan(
+// 		&u.ID,
+// 		&u.Email,
+// 	); err != nil {
+// 		return nil, err
+// 	}
+// 	return u, nil
+// }
