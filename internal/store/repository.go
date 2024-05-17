@@ -20,4 +20,5 @@ type CacheRepository interface {
 type SessionRepository interface {
 	VerifyRefreshToken(string, string) (*model.Session, error)
 	CreateSession(uint32, string) (*model.Session, error)
+	DeleteSession(string, string) error
 }

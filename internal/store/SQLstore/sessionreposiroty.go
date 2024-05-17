@@ -58,5 +58,15 @@ func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string)
 	return session, nil
 }
 
+func (s *SessionRepository) DeleteSession(fingerPrint, refreshToken string) error {
+	if err := s.store.db.QueryRow(
+		"DELETE FROM sessions WHERE fingerprint = $1 AND refresh_token = $2;",
+		fingerPrint,
+		refreshToken,
+	).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // TODO: добавить удаление сессии по истечению
-// TODO: добавить /logout  (удалять сессию)

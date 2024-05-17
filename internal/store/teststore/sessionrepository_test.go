@@ -36,3 +36,19 @@ func TestSessionRepository_VerifyRefreshToken(t *testing.T) {
 	_, err2 := s.Session().VerifyRefreshToken(session.Fingerprint, session.RefreshToken)
 	assert.NoError(t, err2)
 }
+
+func TestSessionRepository_DeleteSession(t *testing.T) {
+	s := teststore.New()
+
+	session := model.TestSession(t)
+	u := model.TestUser(t)
+	assert.NoError(t, s.User().Create(u))
+	session, err := s.Session().CreateSession(uint32(u.ID), session.Fingerprint)
+	assert.NoError(t, err)
+
+	err1 := s.Session().DeleteSession(session.Fingerprint, session.RefreshToken)
+	assert.NoError(t, err1)
+
+	err2 := s.Session().DeleteSession(session.Fingerprint, "invalidResreshToken")
+	assert.Error(t, err2)
+}

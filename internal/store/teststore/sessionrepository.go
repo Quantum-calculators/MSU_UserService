@@ -43,3 +43,16 @@ func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string)
 		return &model.Session{}, errors.New("invalid refresh token")
 	}
 }
+
+func (s *SessionRepository) DeleteSession(fingerPrint, refreshToken string) error {
+	_, ok := s.sessions[refreshToken]
+	if !ok {
+		return errors.New("session not found")
+	}
+	delete(s.sessions, refreshToken)
+	_, ok = s.sessions[refreshToken]
+	if ok {
+		return errors.New("deleting error")
+	}
+	return nil
+}
