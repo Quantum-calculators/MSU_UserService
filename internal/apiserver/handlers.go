@@ -11,9 +11,8 @@ import (
 )
 
 // Перенести в конфигурацию
-const AccessTokenExp = 60   // min
-const RefreshTokenExp = 720 // hours
 const jwtSecretKey = "test"
+const AccessTokenExp = 10 // min
 
 // test handle
 func (s *server) HandleHello() http.HandlerFunc {
@@ -53,6 +52,11 @@ func (s *server) Login() http.HandlerFunc {
 		ExpRefreshToken int    `json:"expRefreshToken"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "MethodNotAllowed")
+			return
+		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -91,6 +95,30 @@ func (s *server) Login() http.HandlerFunc {
 	}
 }
 
+func (s *server) Logout() http.HandlerFunc {
+	type request struct {
+		RefreshToken string `json:"refreshToken"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "MethodNotAllowed")
+			return
+		}
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+		if err := s.store.Session().DeleteSession(GetFingerPrint(r), req.RefreshToken); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+	}
+}
+
 func (s *server) GetAccessToken() http.HandlerFunc {
 	type request struct {
 		RefreshToken string `json:"refreshToken"`
@@ -101,13 +129,17 @@ func (s *server) GetAccessToken() http.HandlerFunc {
 		ExpRefreshToken int    `json:"expRefreshToken"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "MethodNotAllowed")
+			return
+		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
-
 		session, err := s.store.Session().VerifyRefreshToken(GetFingerPrint(r), req.RefreshToken)
 		if err != nil {
 			w.WriteHeader(http.StatusNonAuthoritativeInfo)
@@ -148,25 +180,27 @@ func (s *server) GetAccessToken() http.HandlerFunc {
 	}
 }
 
-// TODO: Добавить проверку на метод Post
 func (s *server) Registration() http.HandlerFunc {
 	type request struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "MethodNotAllowed")
+			return
+		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
-
 		u := &model.User{
 			Email:    req.Email,
 			Password: req.Password,
 		}
-
 		if err := s.store.User().Create(u); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error()) //сделать нормалныен ошибки, чтобы их можно было сообщать пользователю
@@ -182,13 +216,3 @@ func (s *server) Registration() http.HandlerFunc {
 		s.logger.Infof("%s\t%s", r.Method, r.URL)
 	}
 }
-
-// func (s *server) UserCheck() http.HandlerFunc {
-// 	type request struct {
-// 		AccessToken  string `json:"accessToken"`
-// 		RefreshToken string `json:"refreshToken"`
-// 	}
-// 	return func(w http.ResponseWriter, r *http.Request) {
-
-// 	}
-// }
