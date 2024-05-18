@@ -87,7 +87,44 @@ type CacheRepository interface {
 }
 
 type SessionRepository interface {
+	// The function checks the existence of a session with the specified parameters.
+	//
+	// 	Input params:
+	//		1. FingerPrint string
+	//		2. RefreshToken string
+	// 	Output param:
+	//		1. type Session struct {
+	//			ID           uint32
+	//			UserId       uint32
+	//			RefreshToken string
+	//			Fingerprint  string
+	//			ExpiresIn    int64
+	//			CreatedAt    int64
+	//		}
+	//		2. error or nil
 	VerifyRefreshToken(string, string) (*model.Session, error)
+	//The function generates a Refresh Token and creates an entry in the session database with the specified fingerprint.
+	//
+	// 	Input params:
+	//		1. UserID int
+	//		2. FingerPrint string
+	// 	Output param:
+	//		1. type Session struct {
+	//			ID           uint32
+	//			UserId       uint32
+	//			RefreshToken string
+	//			Fingerprint  string
+	//			ExpiresIn    int64
+	//			CreatedAt    int64
+	//		}
+	//		2. error or nil
 	CreateSession(uint32, string) (*model.Session, error)
+	// Deletes the session with the specified fingerprint and Refresh Token.
+	//
+	// 	Input params:
+	//		1. FingerPrint string
+	//		2. RefreshToken string
+	// 	Output param:
+	//		1. error or nil
 	DeleteSession(string, string) error
 }
