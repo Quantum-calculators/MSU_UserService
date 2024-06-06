@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	messagebroker "github.com/Quantum-calculators/MSU_UserService/internal/messageBroker"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store/RedisStore"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store/SQLstore"
 	"github.com/redis/go-redis/v9"
@@ -25,7 +26,8 @@ func Start(config *Config) error {
 	}
 	Rstore := RedisStore.New(rdb)
 	sqlstore := SQLstore.New(SQLdb, config.ExpRefresh)
-	srv := newServer(sqlstore, Rstore)
+	broker := messagebroker.NewAMQL(config.AMQPaddr)
+	srv := newServer(sqlstore, Rstore, broker)
 
 	return http.ListenAndServe(config.ServerAddr, srv)
 }

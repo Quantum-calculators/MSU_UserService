@@ -40,8 +40,25 @@ func GetFingerPrint(r *http.Request) string {
 	return fingerPrint
 }
 
+type errorResponse struct {
+	status_code int
+	message     string
+}
+
+func (s *server) error(w http.ResponseWriter, statusCode int, message string) errorResponse {
+	resp := errorResponse{
+		status_code: statusCode,
+		message:     message,
+	}
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		s.logger.Errorf("Error:%s", err)
+		return errorResponse{status_code: http.StatusInternalServerError}
+	}
+	return resp
+}
+
 // TODO: добавить описание ошибок в ответе пользователю
-// TODO: Добавить проверку на метод Post
 func (s *server) Login() http.HandlerFunc {
 	type request struct {
 		Email    string `json:"email"`
@@ -51,6 +68,7 @@ func (s *server) Login() http.HandlerFunc {
 		RefreshToken    string `json:"refreshToken"`
 		ExpRefreshToken int    `json:"expRefreshToken"`
 	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -187,14 +205,14 @@ func (s *server) Registration() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
 			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "MethodNotAllowed")
 			return
 		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			s.error(w, http.StatusUnprocessableEntity, "Incorrect request fields")
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "Incorrect request fields")
 			return
 		}
 		u := &model.User{
@@ -202,14 +220,14 @@ func (s *server) Registration() http.HandlerFunc {
 			Password: req.Password,
 		}
 		if err := s.store.User().Create(u); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error()) //сделать нормалныен ошибки, чтобы их можно было сообщать пользователю
+			s.error(w, http.StatusUnprocessableEntity, err.Error())
+			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
 		u.Sanitize()
 		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(u); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			s.error(w, http.StatusUnprocessableEntity, "")
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
