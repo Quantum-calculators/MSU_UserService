@@ -3,6 +3,7 @@ package apiserver
 import (
 	"net/http"
 
+	messageBroker "github.com/Quantum-calculators/MSU_UserService/internal/messageBroker"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
 	"github.com/sirupsen/logrus"
 )
@@ -12,16 +13,16 @@ type server struct {
 	logger *logrus.Logger
 	store  store.Store
 	Rstore store.RedisStore
+	broker *messageBroker.Broker
 }
 
-func newServer(store store.Store, redisstore store.RedisStore) *server {
+func newServer(store store.Store, redisstore store.RedisStore, broker *messageBroker.Broker) *server {
 	s := &server{
 		router: http.NewServeMux(),
 		logger: logrus.New(),
 		store:  store,
 		Rstore: redisstore,
 	}
-
 	s.ConfigureRouter()
 	s.logger.Info("server is running")
 	return s

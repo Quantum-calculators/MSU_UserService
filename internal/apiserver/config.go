@@ -8,6 +8,7 @@ type Config struct {
 	RedisPas    string `toml:"RedisPas"`
 	ExpRefresh  int    `toml:"ExpRefreshTokenInMin"`
 	ExpAccess   int    `toml:"ExpAccessTokenInMin"`
+	AMQPaddr    string `toml:"AMQPaddr"`
 }
 
 func NewConfig() *Config {
