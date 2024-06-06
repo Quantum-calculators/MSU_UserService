@@ -2,7 +2,6 @@ package apiserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -71,21 +70,21 @@ func (s *server) Login() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
 			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "MethodNotAllowed")
 			return
 		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			s.error(w, http.StatusUnprocessableEntity, "Incorrect request fields")
+			s.logger.Warnf("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 
 		expectedU, err := s.store.User().FindByEmail(req.Email)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error()) //сделать нормалныен ошибки, чтобы их можно было сообщать пользователю
+			s.error(w, http.StatusNotFound, "There is no user with this email address")
+			s.logger.Warnf("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusNotFound, err.Error()) //сделать нормалныен ошибки, чтобы их можно было сообщать пользователю
 			return
 		}
 		if !expectedU.ComparePassword(req.Password) {
@@ -96,8 +95,8 @@ func (s *server) Login() http.HandlerFunc {
 		expectedU.Sanitize()
 		session, err := s.store.Session().CreateSession(uint32(expectedU.ID), GetFingerPrint(r))
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			s.error(w, http.StatusInternalServerError, "Failed to create a session")
+			s.logger.Errorf("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusInternalServerError, err.Error()) //сделать нормалныен ошибки, чтобы их можно было сообщать пользователю
 			return
 		}
 		resp := response{
@@ -105,7 +104,7 @@ func (s *server) Login() http.HandlerFunc {
 			ExpRefreshToken: int(session.ExpiresIn),
 		}
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			s.error(w, http.StatusUnprocessableEntity, "")
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
@@ -119,19 +118,19 @@ func (s *server) Logout() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
 			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "MethodNotAllowed")
 			return
 		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			s.error(w, http.StatusUnprocessableEntity, "Incorrect request fields")
+			s.logger.Warnf("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		if err := s.store.Session().DeleteSession(GetFingerPrint(r), req.RefreshToken); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			s.error(w, http.StatusInternalServerError, "Failed to delete a session")
+			s.logger.Errorf("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusInternalServerError, err.Error()) //сделать нормалныен ошибки, чтобы их можно было сообщать пользователю
 			return
 		}
 	}
@@ -148,27 +147,26 @@ func (s *server) GetAccessToken() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			s.error(w, http.StatusMethodNotAllowed, "Only the GET method is allowed")
 			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "MethodNotAllowed")
 			return
 		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			s.error(w, http.StatusUnprocessableEntity, "Incorrect request fields")
+			s.logger.Warnf("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		session, err := s.store.Session().VerifyRefreshToken(GetFingerPrint(r), req.RefreshToken)
 		if err != nil {
 			w.WriteHeader(http.StatusNonAuthoritativeInfo)
+			s.error(w, http.StatusUnauthorized, "The session for this user was not found")
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
-		fmt.Println(session)
 		user, err := s.store.User().GetUserByID(int(session.UserId))
-		fmt.Println(user)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
+			s.error(w, http.StatusInternalServerError, "")
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
@@ -180,7 +178,7 @@ func (s *server) GetAccessToken() http.HandlerFunc {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 		accessToken, err := token.SignedString([]byte(jwtSecretKey))
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			s.error(w, http.StatusInternalServerError, "Failed to generate accessToken")
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
@@ -190,7 +188,7 @@ func (s *server) GetAccessToken() http.HandlerFunc {
 			ExpRefreshToken: int(session.ExpiresIn),
 		}
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			s.error(w, http.StatusUnprocessableEntity, "")
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
