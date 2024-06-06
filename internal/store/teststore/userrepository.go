@@ -1,8 +1,6 @@
 package teststore
 
 import (
-	"errors"
-
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
 )
@@ -14,11 +12,15 @@ type UserRepository struct {
 
 func (r *UserRepository) Create(u *model.User) error {
 	if err := u.Validate(); err != nil {
-		return err
+		return err // The Validate function can return two errors: 'invalid password' or 'invalid email'
 	}
 
 	if err := u.BeforeCreate(); err != nil {
-		return err
+		return model.ErrEncryptedPassword
+	}
+	_, ok := r.users[u.Email]
+	if ok {
+		return store.ErrExistUserWithEmail
 	}
 	r.users[u.Email] = u
 	u.ID = len(r.users)
@@ -35,7 +37,7 @@ func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 
 func (r *UserRepository) UpdateEmail(newEmail string, u *model.User) error {
 	if !model.ValidEmail(newEmail) {
-		return errors.New("not valid email")
+		return model.ErrInvalidEmail
 	}
 	newU := r.users[u.Email]
 	newU.Email = newEmail
@@ -46,11 +48,11 @@ func (r *UserRepository) UpdateEmail(newEmail string, u *model.User) error {
 
 func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 	if !model.ValidPassword(password) {
-		return errors.New("not valid password")
+		return model.ErrInvalidPass
 	}
 	u.Password = password
 	if err := u.BeforeCreate(); err != nil {
-		return err
+		return model.ErrEncryptedPassword
 	}
 	return nil
 }
@@ -61,15 +63,5 @@ func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
 			return j, nil
 		}
 	}
-	return &model.User{}, errors.New("user not found")
+	return &model.User{}, store.ErrRecordNotFound
 }
-
-// func (r *UserRepository) SetRefreshToken(refreshToken string, expRefreshToken int, u *model.User) error {
-// 	u.RefreshToken = refreshToken
-// 	u.ExpRefreshToken = expRefreshToken
-// 	return nil
-// }
-
-// func (r *UserRepository) GetUserByRefreshToken(UserRefreshToken string) (*model.User, error) {
-// 	return nil, nil
-// }

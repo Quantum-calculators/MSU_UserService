@@ -1,7 +1,6 @@
 package model
 
 import (
-	"errors"
 	"net/mail"
 
 	"golang.org/x/crypto/bcrypt"
@@ -22,16 +21,16 @@ func ValidEmail(s string) bool {
 }
 
 func ValidPassword(s string) bool {
-	return len(s) > 8 && len(s) < 100
+	return len(s) > 8 && len(s) < 72
 }
 
 func (u *User) Validate() error {
 	if len(u.Email) == 0 || !ValidEmail(u.Email) {
-		return errors.New("invalid Email")
+		return ErrInvalidEmail
 	}
 	if !ValidPassword(u.Password) {
 		if len(u.EncryptedPassword) == 0 {
-			return errors.New("invalid Password")
+			return ErrInvalidPass
 		}
 	}
 	return nil

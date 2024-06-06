@@ -2,7 +2,6 @@ package SQLstore
 
 import (
 	"database/sql"
-	"errors"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
@@ -16,15 +15,17 @@ func (r *UserRepository) Create(u *model.User) error {
 	if err := u.Validate(); err != nil {
 		return err
 	}
-
 	if err := u.BeforeCreate(); err != nil {
-		return err
+		return model.ErrEncryptedPassword
 	}
-	return r.store.db.QueryRow(
+	if err := r.store.db.QueryRow(
 		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
 		u.Email,
 		u.EncryptedPassword,
-	).Scan(&u.ID)
+	).Scan(&u.ID); err != nil {
+		return store.ErrExistUserWithEmail
+	}
+	return nil
 }
 
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
@@ -46,10 +47,10 @@ func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 
 func (r *UserRepository) UpdateEmail(newEmail string, u *model.User) error {
 	if !model.ValidEmail(newEmail) {
-		return errors.New("not valid email")
+		return model.ErrInvalidEmail
 	}
 	if err := r.store.db.QueryRow("UPDATE users SET email = $1 WHERE email = $2", newEmail, u.Email).Err(); err != nil {
-		return err
+		return store.ErrUpdateEmailFailed
 	}
 	u.Email = newEmail
 	return nil
@@ -57,7 +58,7 @@ func (r *UserRepository) UpdateEmail(newEmail string, u *model.User) error {
 
 func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 	if !model.ValidPassword(password) {
-		return errors.New("not valid password")
+		return model.ErrInvalidPass
 	}
 	u.Password = password
 	if err := u.BeforeCreate(); err != nil {
@@ -68,7 +69,7 @@ func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 		u.EncryptedPassword,
 		u.Email,
 	).Err(); err != nil {
-		return err
+		return store.ErrUpdatePassFailed
 	}
 	return nil
 }
@@ -82,33 +83,7 @@ func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
 		&u.Email,
 		&u.EncryptedPassword,
 	); err != nil {
-		return &model.User{}, err
+		return &model.User{}, store.ErrRecordNotFound
 	}
 	return &u, nil
 }
-
-// func (r *UserRepository) SetRefreshToken(refreshToken string, expRefreshToken int, u *model.User) error {
-// 	if err := r.store.db.QueryRow(
-// 		"UPDATE users SET refresh_token = $1, exp_refresh_token = $2 WHERE email = $3",
-// 		refreshToken,
-// 		expRefreshToken,
-// 		u.Email,
-// 	).Err(); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// func (r *UserRepository) GetUserByRefreshToken(UserRefreshToken string) (*model.User, error) {
-// 	u := &model.User{}
-// 	if err := r.store.db.QueryRow(
-// 		"SELECT id, email FROM users WHERE refresh_token = $1",
-// 		UserRefreshToken,
-// 	).Scan(
-// 		&u.ID,
-// 		&u.Email,
-// 	); err != nil {
-// 		return nil, err
-// 	}
-// 	return u, nil
-// }
