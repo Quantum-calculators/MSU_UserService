@@ -79,6 +79,14 @@ type UserRepository interface {
 	// 		}
 	//		2. error or nil
 	GetUserByID(int) (*model.User, error)
+	// Sets the user, with the passed ID, the verified field
+	//
+	// 	Input params:
+	//		1. UserID int
+	//		2. Verify bool
+	// 	Output params:
+	//		1. error or nil
+	SetVerify(int, bool) error
 }
 
 type CacheRepository interface {

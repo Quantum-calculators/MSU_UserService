@@ -31,11 +31,12 @@ func (r *UserRepository) Create(u *model.User) error {
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 	u := &model.User{}
 	if err := r.store.db.QueryRow(
-		"SELECT id, email, encrypted_password FROM users WHERE email = $1", email,
+		"SELECT id, email, encrypted_password, verify FROM users WHERE email = $1", email,
 	).Scan(
 		&u.ID,
 		&u.Email,
 		&u.EncryptedPassword,
+		&u.Verified,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, store.ErrRecordNotFound
@@ -77,13 +78,25 @@ func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
 	u := model.User{}
 	if err := r.store.db.QueryRow(
-		"SELECT email, encrypted_password FROM users WHERE id = $1",
+		"SELECT email, encrypted_password, verify FROM users WHERE id = $1",
 		UserID,
 	).Scan(
 		&u.Email,
 		&u.EncryptedPassword,
+		&u.Verified,
 	); err != nil {
 		return &model.User{}, store.ErrRecordNotFound
 	}
 	return &u, nil
+}
+
+func (r *UserRepository) SetVerify(UserID int, verify bool) error {
+	if err := r.store.db.QueryRow(
+		"UPDATE users SET verify = $1 WHERE id = $2;",
+		verify,
+		UserID,
+	).Err(); err != nil {
+		return err
+	}
+	return nil
 }

@@ -1,6 +1,8 @@
 package teststore
 
 import (
+	"errors"
+
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
 )
@@ -18,6 +20,7 @@ func (r *UserRepository) Create(u *model.User) error {
 	if err := u.BeforeCreate(); err != nil {
 		return model.ErrEncryptedPassword
 	}
+	u.Verified = false
 	_, ok := r.users[u.Email]
 	if ok {
 		return store.ErrExistUserWithEmail
@@ -64,4 +67,18 @@ func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
 		}
 	}
 	return &model.User{}, store.ErrRecordNotFound
+}
+
+func (r *UserRepository) SetVerify(UserID int, verify bool) error {
+	ok := false
+	for i := range r.users {
+		if r.users[i].ID == UserID {
+			ok = true
+			r.users[i].Verified = true
+		}
+	}
+	if ok {
+		return nil
+	}
+	return errors.New("user not found")
 }
