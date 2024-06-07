@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
+	"github.com/Quantum-calculators/MSU_UserService/internal/store"
 	"github.com/golang-jwt/jwt"
 )
 
 // Перенести в конфигурацию
 const jwtSecretKey = "test"
-const AccessTokenExp = 10 // min
+const AccessTokenExp = 10 // in minutes
 
-// test handle
 func (s *server) HandleHello() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		HTML := `<!DOCTYPE html>
@@ -83,8 +83,13 @@ func (s *server) Login() http.HandlerFunc {
 
 		expectedU, err := s.store.User().FindByEmail(req.Email)
 		if err != nil {
-			s.error(w, http.StatusNotFound, "There is no user with this email address")
-			s.logger.Warnf("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusNotFound, err.Error()) //сделать нормалныен ошибки, чтобы их можно было сообщать пользователю
+			if err == store.ErrRecordNotFound {
+				s.error(w, http.StatusNotFound, "There is no user with this email address")
+				s.logger.Warnf("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusNotFound, err.Error()) //сделать нормалныен ошибки, чтобы их можно было сообщать пользователю
+				return
+			}
+			s.error(w, http.StatusInternalServerError, "Server error - the user could not be found")
+			s.logger.Errorf("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusNotFound, err.Error()) //сделать нормалныен ошибки, чтобы их можно было сообщать пользователю
 			return
 		}
 		if !expectedU.ComparePassword(req.Password) {
