@@ -13,6 +13,7 @@ type User struct {
 	RefreshToken      string `json:"refreshToken,omitempty"`
 	ExpRefreshToken   int    `json:"expRefreshToken,omitempty"`
 	EncryptedPassword string `json:"-"`
+	Verified          bool   `json:"verified"`
 }
 
 func ValidEmail(s string) bool {
