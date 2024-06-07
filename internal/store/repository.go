@@ -13,6 +13,7 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	// 	Output params:
 	// 		1. error or nil
@@ -29,6 +30,7 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	// 		2. error or nil
 	FindByEmail(string) (*model.User, error)
@@ -45,6 +47,7 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	// 		2. error or nil
 	UpdateEmail(string, *model.User) error
@@ -60,6 +63,7 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	// 	Output params:
 	//		1. error or nil
@@ -76,6 +80,7 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	//		2. error or nil
 	GetUserByID(int) (*model.User, error)
