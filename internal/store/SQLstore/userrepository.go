@@ -19,9 +19,10 @@ func (r *UserRepository) Create(u *model.User) error {
 		return model.ErrEncryptedPassword
 	}
 	if err := r.store.db.QueryRow(
-		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
+		"INSERT INTO users (email, encrypted_password, verification_token) VALUES ($1, $2, $3) RETURNING id",
 		u.Email,
 		u.EncryptedPassword,
+		u.VerificationToken,
 	).Scan(&u.ID); err != nil {
 		return store.ErrExistUserWithEmail
 	}
@@ -99,4 +100,19 @@ func (r *UserRepository) SetVerify(Email string, verify bool) error {
 		return err
 	}
 	return nil
+}
+
+func (r *UserRepository) CheckVerificationToken(Email, token string) (bool, error) {
+	var dbToken string
+	err := r.store.db.QueryRow(
+		"SELECT verification_token FROM users WHERE email = $1",
+		Email,
+	).Scan(&dbToken)
+	if err != nil {
+		return false, err
+	}
+	if dbToken == token {
+		return true, nil
+	}
+	return false, nil
 }

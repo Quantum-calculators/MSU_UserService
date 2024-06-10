@@ -92,6 +92,8 @@ type UserRepository interface {
 	// 	Output params:
 	//		1. error or nil
 	SetVerify(string, bool) error
+	// CheckVerificationToken...
+	CheckVerificationToken(string, string) (bool, error)
 }
 
 type CacheRepository interface {

@@ -85,3 +85,17 @@ func TestUserRepository_SetVerify(t *testing.T) {
 	assert.NoError(t, err3)
 	assert.True(t, VerifiedU.Verified)
 }
+
+func TestUserRepository_CheckVerificationToken(t *testing.T) {
+	s := teststore.New()
+	u := model.TestUser(t)
+	s.User().Create(u)
+
+	pass, err := s.User().CheckVerificationToken(u.Email, u.VerificationToken)
+	assert.NoError(t, err)
+	assert.True(t, pass)
+
+	pass1, err := s.User().CheckVerificationToken(u.Email, "not_valid_token")
+	assert.NoError(t, err)
+	assert.False(t, pass1)
+}

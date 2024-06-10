@@ -77,3 +77,15 @@ func (r *UserRepository) SetVerify(Email string, verify bool) error {
 	r.users[Email].Verified = verify
 	return nil
 }
+
+func (r *UserRepository) CheckVerificationToken(Email, token string) (bool, error) {
+	_, ok := r.users[Email]
+	if !ok {
+		return false, errors.New("user not found")
+	}
+
+	if r.users[Email].VerificationToken == token {
+		return true, nil
+	}
+	return false, nil
+}

@@ -15,7 +15,8 @@ func TestUserRepository_Create(t *testing.T) {
 
 	s := SQLstore.New(db, 5)
 	u := model.TestUser(t)
-	assert.NoError(t, s.User().Create(u))
+	err := s.User().Create(u)
+	assert.NoError(t, err)
 	assert.NotNil(t, u)
 }
 
@@ -105,4 +106,22 @@ func TestUserRepository_SetVerify(t *testing.T) {
 	VerifiedU, err3 := s.User().GetUserByID(u.ID)
 	assert.NoError(t, err3)
 	assert.True(t, VerifiedU.Verified)
+}
+
+func TestUserRepository_CheckVerificationToken(t *testing.T) {
+	db, teardown := SQLstore.TestDB(t, databaseURL)
+	defer teardown("users")
+	s := SQLstore.New(db, 5)
+
+	u := model.TestUser(t)
+	err := s.User().Create(u)
+	assert.NoError(t, err)
+
+	pass, err := s.User().CheckVerificationToken(u.Email, u.VerificationToken)
+	assert.NoError(t, err)
+	assert.True(t, pass)
+
+	pass1, err := s.User().CheckVerificationToken(u.Email, "not_valid_token")
+	assert.NoError(t, err)
+	assert.False(t, pass1)
 }
