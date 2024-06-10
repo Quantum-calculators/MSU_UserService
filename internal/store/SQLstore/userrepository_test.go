@@ -99,7 +99,7 @@ func TestUserRepository_SetVerify(t *testing.T) {
 	assert.NoError(t, err1)
 	assert.False(t, NotVerifiedU.Verified)
 
-	err2 := s.User().SetVerify(u.ID, true)
+	err2 := s.User().SetVerify(u.Email, true)
 	assert.NoError(t, err2)
 
 	VerifiedU, err3 := s.User().GetUserByID(u.ID)

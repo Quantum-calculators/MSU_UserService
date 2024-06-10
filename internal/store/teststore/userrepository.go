@@ -69,16 +69,11 @@ func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
 	return &model.User{}, store.ErrRecordNotFound
 }
 
-func (r *UserRepository) SetVerify(UserID int, verify bool) error {
-	ok := false
-	for i := range r.users {
-		if r.users[i].ID == UserID {
-			ok = true
-			r.users[i].Verified = true
-		}
+func (r *UserRepository) SetVerify(Email string, verify bool) error {
+	_, ok := r.users[Email]
+	if !ok {
+		return errors.New("user not found")
 	}
-	if ok {
-		return nil
-	}
-	return errors.New("user not found")
+	r.users[Email].Verified = verify
+	return nil
 }

@@ -90,11 +90,11 @@ func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
 	return &u, nil
 }
 
-func (r *UserRepository) SetVerify(UserID int, verify bool) error {
+func (r *UserRepository) SetVerify(Email string, verify bool) error {
 	if err := r.store.db.QueryRow(
-		"UPDATE users SET verify = $1 WHERE id = $2;",
+		"UPDATE users SET verify = $1 WHERE email = $2;",
 		verify,
-		UserID,
+		Email,
 	).Err(); err != nil {
 		return err
 	}
