@@ -7,8 +7,10 @@ import (
 
 func TestUser(t *testing.T) *User {
 	return &User{
-		Email:    "user@example.org",
-		Password: "examplePassword",
+		Email:             "user@example.org",
+		Password:          "examplePassword",
+		Verified:          false,
+		VerificationToken: "34mq0pcxum3q048xjt438pxjgmp30jx89mp30483jcxqm3hpcgx89h3mcg93q04x",
 	}
 }
 

@@ -53,9 +53,10 @@ func TestSessionRepository_DeleteSession(t *testing.T) {
 
 	session := model.TestSession(t)
 	u := model.TestUser(t)
-	assert.NoError(t, s.User().Create(u))
-	session, err := s.Session().CreateSession(uint32(u.ID), session.Fingerprint)
+	err := s.User().Create(u)
 	assert.NoError(t, err)
+	session, err2 := s.Session().CreateSession(uint32(u.ID), session.Fingerprint)
+	assert.NoError(t, err2)
 
 	err1 := s.Session().DeleteSession(session.Fingerprint, session.RefreshToken)
 	assert.NoError(t, err1)

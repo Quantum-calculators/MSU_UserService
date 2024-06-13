@@ -19,9 +19,10 @@ func (r *UserRepository) Create(u *model.User) error {
 		return model.ErrEncryptedPassword
 	}
 	if err := r.store.db.QueryRow(
-		"INSERT INTO users (email, encrypted_password) VALUES ($1, $2) RETURNING id",
+		"INSERT INTO users (email, encrypted_password, verification_token) VALUES ($1, $2, $3) RETURNING id",
 		u.Email,
 		u.EncryptedPassword,
+		u.VerificationToken,
 	).Scan(&u.ID); err != nil {
 		return store.ErrExistUserWithEmail
 	}
@@ -31,11 +32,12 @@ func (r *UserRepository) Create(u *model.User) error {
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 	u := &model.User{}
 	if err := r.store.db.QueryRow(
-		"SELECT id, email, encrypted_password FROM users WHERE email = $1", email,
+		"SELECT id, email, encrypted_password, verify FROM users WHERE email = $1", email,
 	).Scan(
 		&u.ID,
 		&u.Email,
 		&u.EncryptedPassword,
+		&u.Verified,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, store.ErrRecordNotFound
@@ -77,13 +79,40 @@ func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
 	u := model.User{}
 	if err := r.store.db.QueryRow(
-		"SELECT email, encrypted_password FROM users WHERE id = $1",
+		"SELECT email, encrypted_password, verify FROM users WHERE id = $1",
 		UserID,
 	).Scan(
 		&u.Email,
 		&u.EncryptedPassword,
+		&u.Verified,
 	); err != nil {
 		return &model.User{}, store.ErrRecordNotFound
 	}
 	return &u, nil
+}
+
+func (r *UserRepository) SetVerify(Email string, verify bool) error {
+	if err := r.store.db.QueryRow(
+		"UPDATE users SET verify = $1 WHERE email = $2;",
+		verify,
+		Email,
+	).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *UserRepository) CheckVerificationToken(Email, token string) (bool, error) {
+	var dbToken string
+	err := r.store.db.QueryRow(
+		"SELECT verification_token FROM users WHERE email = $1",
+		Email,
+	).Scan(&dbToken)
+	if err != nil {
+		return false, err
+	}
+	if dbToken == token {
+		return true, nil
+	}
+	return false, nil
 }

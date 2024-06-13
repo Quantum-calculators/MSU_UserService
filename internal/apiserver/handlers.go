@@ -2,17 +2,20 @@ package apiserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
+	"github.com/Quantum-calculators/MSU_UserService/internal/token_generator"
 	"github.com/golang-jwt/jwt"
 )
 
 // Перенести в конфигурацию
 const jwtSecretKey = "test"
 const AccessTokenExp = 10 // in minutes
+const VerificationURL = "127.0.0.1:8080/verification/"
 
 func (s *server) HandleHello() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +60,6 @@ func (s *server) error(w http.ResponseWriter, statusCode int, message string) er
 	return resp
 }
 
-// TODO: добавить описание ошибок в ответе пользователю
 func (s *server) Login() http.HandlerFunc {
 	type request struct {
 		Email    string `json:"email"`
@@ -206,6 +208,10 @@ func (s *server) Registration() http.HandlerFunc {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
+	type brokerMessage struct {
+		Email string
+		URL   string
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
@@ -218,9 +224,16 @@ func (s *server) Registration() http.HandlerFunc {
 			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "Incorrect request fields")
 			return
 		}
+		VerToken, err := token_generator.GenerateRandomString(64)
+		if err != nil {
+			s.error(w, http.StatusInternalServerError, "User registration error")
+			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
 		u := &model.User{
-			Email:    req.Email,
-			Password: req.Password,
+			Email:             req.Email,
+			Password:          req.Password,
+			VerificationToken: VerToken,
 		}
 		if err := s.store.User().Create(u); err != nil {
 			s.error(w, http.StatusUnprocessableEntity, err.Error())
@@ -228,12 +241,57 @@ func (s *server) Registration() http.HandlerFunc {
 			return
 		}
 		u.Sanitize()
+
+		message := brokerMessage{
+			Email: u.Email,
+			URL:   VerificationURL + VerToken,
+		}
+
+		body, err := json.Marshal(message)
+		if err != nil {
+			s.error(w, http.StatusInternalServerError, "Failed to send verification message")
+			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+
+		fmt.Println(string(body))
+		err = s.broker.SendVerificationMessage(body, "VerifyEmail")
+		if err != nil {
+			s.error(w, http.StatusUnprocessableEntity, "")
+		}
 		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(u); err != nil {
 			s.error(w, http.StatusUnprocessableEntity, "")
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
+		s.logger.Infof("%s\t%s", r.Method, r.URL)
+	}
+}
+
+func (s *server) Verification() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
+			s.logger.Warnf("%s\t%s\tError: %s", r.Method, r.URL, "MethodNotAllowed")
+			return
+		}
+		token := r.PathValue("token")
+		email := r.PathValue("email")
+
+		ok, err := s.store.User().CheckVerificationToken(email, token)
+		if err != nil {
+			s.error(w, http.StatusInternalServerError, "Server error")
+			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+		err = s.store.User().SetVerify(email, ok)
+		if err != nil {
+			s.error(w, http.StatusInternalServerError, "Server error")
+			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 		s.logger.Infof("%s\t%s", r.Method, r.URL)
 	}
 }

@@ -10,9 +10,9 @@ type User struct {
 	ID                int    `json:"id"`
 	Email             string `json:"email"`
 	Password          string `json:"password,omitempty"`
-	RefreshToken      string `json:"refreshToken,omitempty"`
-	ExpRefreshToken   int    `json:"expRefreshToken,omitempty"`
 	EncryptedPassword string `json:"-"`
+	Verified          bool   `json:"verified,omitempty"`
+	VerificationToken string `json:"verification_token,omitempty"`
 }
 
 func ValidEmail(s string) bool {

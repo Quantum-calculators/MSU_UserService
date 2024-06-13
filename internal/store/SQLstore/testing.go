@@ -2,6 +2,7 @@ package SQLstore
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -18,7 +19,10 @@ func TestDB(t *testing.T, databaseURL string) (*sql.DB, func(...string)) {
 	}
 	return db, func(tables ...string) {
 		if len(tables) > 0 {
-			db.Exec("TRUNCATE %s CASCADE", strings.Join(tables, ", "))
+			_, err := db.Exec(fmt.Sprintf("TRUNCATE %s CASCADE;", strings.Join(tables, ", ")))
+			if err != nil {
+				panic(fmt.Sprintf("the test table could not be cleared: %s", err))
+			}
 		}
 		db.Close()
 	}

@@ -68,3 +68,34 @@ func TestUserRepository_GetUserByID(t *testing.T) {
 	_, err2 := s.User().GetUserByID(2)
 	assert.Error(t, err2)
 }
+
+func TestUserRepository_SetVerify(t *testing.T) {
+	s := teststore.New()
+	u := model.TestUser(t)
+	s.User().Create(u)
+
+	NotVerifiedU, err1 := s.User().GetUserByID(u.ID)
+	assert.NoError(t, err1)
+	assert.False(t, NotVerifiedU.Verified)
+
+	err2 := s.User().SetVerify(u.Email, true)
+	assert.NoError(t, err2)
+
+	VerifiedU, err3 := s.User().GetUserByID(u.ID)
+	assert.NoError(t, err3)
+	assert.True(t, VerifiedU.Verified)
+}
+
+func TestUserRepository_CheckVerificationToken(t *testing.T) {
+	s := teststore.New()
+	u := model.TestUser(t)
+	s.User().Create(u)
+
+	pass, err := s.User().CheckVerificationToken(u.Email, u.VerificationToken)
+	assert.NoError(t, err)
+	assert.True(t, pass)
+
+	pass1, err := s.User().CheckVerificationToken(u.Email, "not_valid_token")
+	assert.NoError(t, err)
+	assert.False(t, pass1)
+}

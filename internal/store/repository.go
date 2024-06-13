@@ -13,6 +13,7 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	// 	Output params:
 	// 		1. error or nil
@@ -29,6 +30,7 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	// 		2. error or nil
 	FindByEmail(string) (*model.User, error)
@@ -45,6 +47,7 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	// 		2. error or nil
 	UpdateEmail(string, *model.User) error
@@ -60,6 +63,7 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	// 	Output params:
 	//		1. error or nil
@@ -76,9 +80,20 @@ type UserRepository interface {
 	// 			RefreshToken      string
 	// 			ExpRefreshToken   int
 	// 			EncryptedPassword string
+	//			Verified          bool
 	// 		}
 	//		2. error or nil
 	GetUserByID(int) (*model.User, error)
+	// Sets the user, with the passed Email, the verified field
+	//
+	// 	Input params:
+	//		1. Email string
+	//		2. Verify bool
+	// 	Output params:
+	//		1. error or nil
+	SetVerify(string, bool) error
+	// CheckVerificationToken...
+	CheckVerificationToken(string, string) (bool, error)
 }
 
 type CacheRepository interface {
