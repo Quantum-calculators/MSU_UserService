@@ -1,14 +1,12 @@
 package apiserver
 
 type Config struct {
-	ServerAddr  string `toml:"ServerAddr"`
-	LogLevel    string `toml:"LogLevel"`
-	DatabaseURL string `toml:"SQLdb_url"`
-	RedisAddr   string `toml:"RedisAddr"`
-	RedisPas    string `toml:"RedisPas"`
-	ExpRefresh  int    `toml:"ExpRefreshTokenInMin"`
-	ExpAccess   int    `toml:"ExpAccessTokenInMin"`
-	AMQPaddr    string `toml:"AMQPaddr"`
+	ServerAddr string `toml:"ServerAddr"`
+	LogLevel   string `toml:"LogLevel"`
+	RedisAddr  string `toml:"RedisAddr"`
+	RedisPas   string `toml:"RedisPas"`
+	ExpRefresh int    `toml:"ExpRefreshTokenInMin"`
+	ExpAccess  int    `toml:"ExpAccessTokenInMin"`
 }
 
 func NewConfig() *Config {

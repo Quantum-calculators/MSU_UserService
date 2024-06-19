@@ -9,11 +9,15 @@ import (
 )
 
 var (
-	configPath string
+	configPath       string
+	PostgresConfPath string
+	RabbitMQConfPath string
 )
 
 func init() {
-	flag.StringVar(&configPath, "config-path", "configs/apiserver.toml", "path to config file")
+	flag.StringVar(&configPath, "server-conf-path", "configs/apiserver.toml", "path to server config file")
+	flag.StringVar(&PostgresConfPath, "postgres-conf-path", "configs/postgres/postgres.toml", "path to PostgreSQL config file")
+	flag.StringVar(&RabbitMQConfPath, "rabbitmq-conf-path", "configs/rabbitMQ/rabbitMQ.toml", "path to RabbitMQ config file")
 }
 
 func main() {
@@ -25,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := apiserver.Start(config); err != nil {
+	if err := apiserver.Start(config, PostgresConfPath, RabbitMQConfPath); err != nil {
 		log.Fatal(err)
 	}
 }

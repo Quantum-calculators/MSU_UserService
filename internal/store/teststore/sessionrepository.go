@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
-	"github.com/Quantum-calculators/MSU_UserService/internal/token_generator"
+	token_generator "github.com/Quantum-calculators/MSU_UserService/internal/tokenGenerator"
 )
 
 type SessionRepository struct {

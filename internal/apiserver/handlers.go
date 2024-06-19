@@ -8,7 +8,7 @@ import (
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
-	"github.com/Quantum-calculators/MSU_UserService/internal/token_generator"
+	token_generator "github.com/Quantum-calculators/MSU_UserService/internal/tokenGenerator"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -43,19 +43,19 @@ func GetFingerPrint(r *http.Request) string {
 }
 
 type errorResponse struct {
-	status_code int
-	message     string
+	Status_code int    `json:"status_code"`
+	Message     string `json:"message"`
 }
 
 func (s *server) error(w http.ResponseWriter, statusCode int, message string) errorResponse {
 	resp := errorResponse{
-		status_code: statusCode,
-		message:     message,
+		Status_code: statusCode,
+		Message:     message,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		s.logger.Errorf("Error:%s", err)
-		return errorResponse{status_code: http.StatusInternalServerError}
+		return errorResponse{Status_code: http.StatusInternalServerError}
 	}
 	return resp
 }
@@ -99,6 +99,7 @@ func (s *server) Login() http.HandlerFunc {
 			s.logger.Infof("%s\t%s", r.Method, r.URL)
 			return
 		}
+		// добавить проверку по полю Verified
 		expectedU.Sanitize()
 		session, err := s.store.Session().CreateSession(uint32(expectedU.ID), GetFingerPrint(r))
 		if err != nil {
@@ -236,6 +237,7 @@ func (s *server) Registration() http.HandlerFunc {
 			VerificationToken: VerToken,
 		}
 		if err := s.store.User().Create(u); err != nil {
+			fmt.Println(err.Error())
 			s.error(w, http.StatusUnprocessableEntity, err.Error())
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
@@ -254,17 +256,16 @@ func (s *server) Registration() http.HandlerFunc {
 			return
 		}
 
-		fmt.Println(string(body))
-		err = s.broker.SendVerificationMessage(body, "VerifyEmail")
+		err = s.broker.Message().SendMessage(body, "/VerifyEmail")
 		if err != nil {
 			s.error(w, http.StatusUnprocessableEntity, "")
 		}
-		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(u); err != nil {
 			s.error(w, http.StatusUnprocessableEntity, "")
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
 		}
+		w.WriteHeader(http.StatusCreated)
 		s.logger.Infof("%s\t%s", r.Method, r.URL)
 	}
 }

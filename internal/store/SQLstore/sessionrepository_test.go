@@ -12,8 +12,8 @@ import (
 func TestSessionRepository_CreateSession(t *testing.T) {
 	db, teardown := SQLstore.TestDB(t, databaseURL)
 	defer teardown("users", "sessions")
-	s := SQLstore.New(db, 5)
 
+	s := SQLstore.New(db, 5)
 	u := model.TestUser(t)
 	assert.NoError(t, s.User().Create(u))
 	session := model.TestSession(t)
@@ -37,7 +37,7 @@ func TestSessionRepository_VerifyRefreshToken(t *testing.T) {
 	_, err1 := s.Session().VerifyRefreshToken("invalidFingerprint", "invalidRefreshToken")
 	assert.Error(t, err1)
 
-	_, err2 := s.Session().VerifyRefreshToken("invalidFingerprint", "invalidRefreshToken")
+	_, err2 := s.Session().VerifyRefreshToken("invalidFingerprint", "invalidRefreshToken") // ??
 	assert.Error(t, err2)
 
 	Fingerprint := "ru-RU.Chromium.macOS.Mozilla/5.0"

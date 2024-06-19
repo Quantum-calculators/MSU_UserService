@@ -13,7 +13,7 @@ type server struct {
 	logger *logrus.Logger
 	store  store.Store
 	Rstore store.RedisStore
-	broker *messageBroker.Broker
+	broker messageBroker.Broker
 }
 
 func newServer(store store.Store, redisstore store.RedisStore, broker messageBroker.Broker) *server {
@@ -22,7 +22,7 @@ func newServer(store store.Store, redisstore store.RedisStore, broker messageBro
 		logger: logrus.New(),
 		store:  store,
 		Rstore: redisstore,
-		broker: &broker,
+		broker: broker,
 	}
 	s.ConfigureRouter()
 	s.logger.Info("server is running")
