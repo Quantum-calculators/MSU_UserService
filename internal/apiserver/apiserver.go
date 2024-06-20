@@ -11,7 +11,9 @@ import (
 
 	"github.com/BurntSushi/toml"
 	rabbitmq "github.com/Quantum-calculators/MSU_UserService/configs/RabbitMQ"
+	apiserverConf "github.com/Quantum-calculators/MSU_UserService/configs/apiserver"
 	postgres "github.com/Quantum-calculators/MSU_UserService/configs/postgres"
+	redisConf "github.com/Quantum-calculators/MSU_UserService/configs/redis"
 	messagebroker "github.com/Quantum-calculators/MSU_UserService/internal/messageBroker/AMQPbroker"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store/RedisStore"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store/SQLstore"
@@ -19,7 +21,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func Start(config *Config, postgresConfPath, RabbitConfPath string) error {
+func Start(config *apiserverConf.Config, postgresConfPath, RabbitConfPath, RedisConfPath string) error {
 	SQLdb, err := MakePostgres(postgresConfPath)
 	if err != nil {
 		return err
@@ -33,7 +35,7 @@ func Start(config *Config, postgresConfPath, RabbitConfPath string) error {
 	defer RabbitChan.Close()
 
 	ctx := context.Background()
-	rdb, err := newRedisdb(ctx, config.RedisAddr, config.RedisPas)
+	rdb, err := MakeRedis(ctx, RedisConfPath)
 	if err != nil {
 		return err
 	}
@@ -43,7 +45,7 @@ func Start(config *Config, postgresConfPath, RabbitConfPath string) error {
 	broker := messagebroker.New(RabbitChan)
 	srv := newServer(sqlstore, Rstore, broker)
 
-	return http.ListenAndServe(config.ServerAddr, srv)
+	return http.ListenAndServe(config.GenServerAddr(), srv)
 }
 
 func MakePostgres(configFilePath string) (*sql.DB, error) {
@@ -82,12 +84,19 @@ func MakeBroker(configFilePath string) (*amqp.Channel, error) {
 	return ch, nil
 }
 
-func newRedisdb(ctx context.Context, Arrd, Password string) (*redis.Client, error) {
+func MakeRedis(ctx context.Context, configFilePath string) (*redis.Client, error) {
+	conf := &redisConf.Config{}
+	_, err := toml.DecodeFile(configFilePath, conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	conf.WithDefaults()
+
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     Arrd,
-		Password: Password,
+		Addr:     conf.GenServerAddr(),
+		Password: conf.Password,
 	})
-	err := rdb.Set(ctx, "key", "value", time.Minute*1).Err()
+	err = rdb.Set(ctx, "key", "value", time.Minute*1).Err()
 	if err != nil {
 		return nil, err
 	}
