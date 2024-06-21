@@ -43,7 +43,7 @@ func Start(config *apiserverConf.Config, postgresConfPath, RabbitConfPath, Redis
 	Rstore := RedisStore.New(rdb)
 	sqlstore := SQLstore.New(SQLdb, config.ExpRefresh)
 	broker := messagebroker.New(RabbitChan)
-	srv := newServer(sqlstore, Rstore, broker)
+	srv := newServer(sqlstore, Rstore, broker, config.ExpAccess, config.JwtSecretKey)
 
 	return http.ListenAndServe(config.GenServerAddr(), srv)
 }
