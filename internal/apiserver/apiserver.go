@@ -59,6 +59,8 @@ func MakePostgres(configFilePath string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(conf.GetSQLaddr())
+	db.QueryRow("")
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
@@ -75,11 +77,11 @@ func MakeBroker(configFilePath string) (*amqp.Channel, error) {
 	fmt.Println(conf.GetAMQPaddr())
 	conn, err := amqp.Dial(conf.GetAMQPaddr())
 	if err != nil {
-		return nil, errors.New("Failed to connect to AMPQ")
+		return nil, errors.New("failed to connect to AMPQ")
 	}
 	ch, err := conn.Channel()
 	if err != nil {
-		return nil, errors.New("Failed to connect to AMPQ")
+		return nil, errors.New("failed to connect to AMPQ")
 	}
 	return ch, nil
 }

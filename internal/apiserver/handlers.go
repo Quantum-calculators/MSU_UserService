@@ -2,7 +2,7 @@ package apiserver
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"time"
 
@@ -16,6 +16,11 @@ import (
 const jwtSecretKey = "test"
 const AccessTokenExp = 10 // in minutes
 const VerificationURL = "127.0.0.1:8080/verification/"
+
+type brokerMessage struct {
+	Email string
+	URL   string
+}
 
 func (s *server) HandleHello() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +104,42 @@ func (s *server) Login() http.HandlerFunc {
 			s.logger.Infof("%s\t%s", r.Method, r.URL)
 			return
 		}
+		if !expectedU.Verified {
+			VerToken, err := token_generator.GenerateRandomString(64)
+			if err != nil {
+				s.error(w, http.StatusInternalServerError, "User registration error")
+				s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+				return
+			}
+
+			message := brokerMessage{
+				Email: expectedU.Email,
+				URL:   VerificationURL + VerToken,
+			}
+
+			if err := s.store.User().UpdateVerificationToken(expectedU.Email, VerToken); err != nil {
+				s.error(w, http.StatusInternalServerError, "Failed to update verification token")
+				s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+				return
+			}
+
+			body, err := json.Marshal(message)
+			if err != nil {
+				s.error(w, http.StatusInternalServerError, "Failed to send verification message")
+				s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
+				return
+			}
+
+			err = s.broker.Message().SendMessage(body, "/VerifyEmail")
+			if err != nil {
+				s.error(w, http.StatusUnprocessableEntity, "")
+			}
+
+			s.error(w, http.StatusUnauthorized, "User not verified")
+			s.logger.Infof("%s\t%s\t  %d\tError: %s", r.Method, r.URL, http.StatusUnauthorized, errors.New("user not verified"))
+			return
+		}
+
 		// добавить проверку по полю Verified
 		expectedU.Sanitize()
 		session, err := s.store.Session().CreateSession(uint32(expectedU.ID), GetFingerPrint(r))
@@ -209,10 +250,6 @@ func (s *server) Registration() http.HandlerFunc {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	type brokerMessage struct {
-		Email string
-		URL   string
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
@@ -237,7 +274,6 @@ func (s *server) Registration() http.HandlerFunc {
 			VerificationToken: VerToken,
 		}
 		if err := s.store.User().Create(u); err != nil {
-			fmt.Println(err.Error())
 			s.error(w, http.StatusUnprocessableEntity, err.Error())
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())
 			return
