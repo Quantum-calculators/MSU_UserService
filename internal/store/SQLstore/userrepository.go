@@ -2,6 +2,7 @@ package SQLstore
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
@@ -24,6 +25,7 @@ func (r *UserRepository) Create(u *model.User) error {
 		u.EncryptedPassword,
 		u.VerificationToken,
 	).Scan(&u.ID); err != nil {
+		fmt.Println(err)
 		return store.ErrExistUserWithEmail
 	}
 	return nil
@@ -97,6 +99,18 @@ func (r *UserRepository) SetVerify(Email string, verify bool) error {
 		verify,
 		Email,
 	).Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *UserRepository) UpdateVerificationToken(Email, token string) error {
+	err := r.store.db.QueryRow(
+		"UPDATE users SET verification_token = $1 WHERE email = $2;",
+		token,
+		Email,
+	).Err()
+	if err != nil {
 		return err
 	}
 	return nil

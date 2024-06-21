@@ -6,6 +6,8 @@ import (
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store/SQLstore"
+	token_generator "github.com/Quantum-calculators/MSU_UserService/internal/tokenGenerator"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -124,4 +126,27 @@ func TestUserRepository_CheckVerificationToken(t *testing.T) {
 	pass1, err := s.User().CheckVerificationToken(u.Email, "not_valid_token")
 	assert.NoError(t, err)
 	assert.False(t, pass1)
+}
+
+func TestUserRepository_UpdateVerificationToken(t *testing.T) {
+	db, teardown := SQLstore.TestDB(t, databaseURL)
+	defer teardown("users")
+	s := SQLstore.New(db, 5)
+
+	u := model.TestUser(t)
+	err := s.User().Create(u)
+	assert.NoError(t, err)
+
+	pass, err := s.User().CheckVerificationToken(u.Email, u.VerificationToken)
+	assert.NoError(t, err)
+	assert.True(t, pass)
+
+	newVerToken, err := token_generator.GenerateRandomString(64)
+
+	err = s.User().UpdateVerificationToken(u.Email, newVerToken)
+	assert.NoError(t, err)
+
+	pass1, err := s.User().CheckVerificationToken(u.Email, newVerToken)
+	assert.NoError(t, err)
+	assert.True(t, pass1)
 }

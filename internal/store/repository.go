@@ -94,6 +94,8 @@ type UserRepository interface {
 	SetVerify(string, bool) error
 	// CheckVerificationToken...
 	CheckVerificationToken(string, string) (bool, error)
+	// UpdateVerificationToken...
+	UpdateVerificationToken(string, string) error
 }
 
 type CacheRepository interface {
