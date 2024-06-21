@@ -25,11 +25,12 @@ func (c *Config) WithDefaults() {
 
 func (c *Config) GetSQLaddr() string {
 	return fmt.Sprintf(
-		"host=%s port=%s password=%s dbname=%s sslmode=%s ",
+		"host=%s port=%s dbname=%s sslmode=%s ",
 		c.Host,
 		c.Port,
-		c.Password,
 		c.DBName,
 		c.SSLMode,
 	)
 }
+
+// password=%s 		c.Password,
