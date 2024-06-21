@@ -1,4 +1,4 @@
-package teststore
+package testStore
 
 import (
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"

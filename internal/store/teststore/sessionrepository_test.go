@@ -1,16 +1,16 @@
-package teststore_test
+package testStore_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
-	"github.com/Quantum-calculators/MSU_UserService/internal/store/teststore"
+	"github.com/Quantum-calculators/MSU_UserService/internal/store/testStore"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSessionRepository_CreateSession(t *testing.T) {
-	s := teststore.New()
+	s := testStore.New()
 
 	u := model.TestUser(t)
 	assert.NoError(t, s.User().Create(u))
@@ -21,7 +21,7 @@ func TestSessionRepository_CreateSession(t *testing.T) {
 }
 
 func TestSessionRepository_VerifyRefreshToken(t *testing.T) {
-	s := teststore.New()
+	s := testStore.New()
 
 	session := model.TestSession(t)
 	u := model.TestUser(t)
@@ -38,7 +38,7 @@ func TestSessionRepository_VerifyRefreshToken(t *testing.T) {
 }
 
 func TestSessionRepository_DeleteSession(t *testing.T) {
-	s := teststore.New()
+	s := testStore.New()
 
 	session := model.TestSession(t)
 	u := model.TestUser(t)

@@ -13,12 +13,12 @@ type Verification struct {
 
 func (v *Verification) SendMessage(message []byte, uri string) error {
 	q, err := v.broker.channel.QueueDeclare(
-		uri,   // name
-		true,  // durable
-		false, // delete when unused
-		false, // exclusive
-		false, // no-wait
-		nil,   // arguments
+		"EmailService", // name
+		true,           // durable
+		false,          // delete when unused
+		false,          // exclusive
+		false,          // no-wait
+		nil,            // arguments
 	)
 	if err != nil {
 		return err

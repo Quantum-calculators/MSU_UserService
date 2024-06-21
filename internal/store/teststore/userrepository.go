@@ -1,4 +1,4 @@
-package teststore
+package testStore
 
 import (
 	"errors"
@@ -88,4 +88,13 @@ func (r *UserRepository) CheckVerificationToken(Email, token string) (bool, erro
 		return true, nil
 	}
 	return false, nil
+}
+
+func (r *UserRepository) UpdateVerificationToken(Email, token string) error {
+	user, ok := r.users[Email]
+	if !ok {
+		return errors.New("user not found")
+	}
+	user.VerificationToken = token
+	return nil
 }
