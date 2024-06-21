@@ -13,8 +13,6 @@ import (
 )
 
 // Перенести в конфигурацию
-const jwtSecretKey = "test"
-const AccessTokenExp = 10 // in minutes
 const VerificationURL = "127.0.0.1:8080/verification/"
 
 type brokerMessage struct {
@@ -221,11 +219,11 @@ func (s *server) GetAccessToken() http.HandlerFunc {
 		}
 		payload := jwt.MapClaims{
 			"sub": user.Email,
-			"exp": time.Now().Add(AccessTokenExp).Unix(),
+			"exp": time.Now().Add(time.Duration(s.expAccess)).Unix(),
 		}
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-		accessToken, err := token.SignedString([]byte(jwtSecretKey))
+		accessToken, err := token.SignedString([]byte(s.jwtSecretKey))
 		if err != nil {
 			s.error(w, http.StatusInternalServerError, "Failed to generate accessToken")
 			s.logger.Errorf("%s\t%s\tError: %s", r.Method, r.URL, err.Error())

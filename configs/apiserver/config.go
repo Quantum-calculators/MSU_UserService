@@ -11,11 +11,12 @@ const (
 )
 
 type Config struct {
-	Port       string `toml:"port"`
-	Host       string `toml:"host"`
-	LogLevel   string `toml:"loglevel"`
-	ExpRefresh int    `toml:"exp_refresh_token_in_min"`
-	ExpAccess  int    `toml:"exp_access_token_in_min"`
+	Port         string `toml:"port"`
+	Host         string `toml:"host"`
+	LogLevel     string `toml:"loglevel"`
+	ExpRefresh   int    `toml:"exp_refresh_token_in_min"`
+	ExpAccess    int    `toml:"exp_access_token_in_min"`
+	JwtSecretKey string `toml:"jwt_secret_key"`
 }
 
 func (c *Config) WithDefaults() {

@@ -1,3 +1,4 @@
 host = "localhost"
 port = "8080"
 loglevel = "Debug"
+jwt_secret_key = "tNI0eFPyoBW3meQqDJNQdJK5dVLV7-zDzGCjgDxtInKG87xWajjzNjIzwjTG5hzo"
