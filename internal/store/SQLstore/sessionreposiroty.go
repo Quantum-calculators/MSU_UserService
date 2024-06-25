@@ -54,7 +54,13 @@ func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string)
 	session, err := s.CreateSession(uint32(user_id), fingerPrint)
 	if err != nil {
 		return &model.Session{}, err
-	} // TODO: добавить поле использован(t/f), чтобы проверять не украден ли токен.
+	}
+	err = s.DeleteSession(fingerPrint, refreshToken)
+	if err != nil {
+		return &model.Session{}, err
+	}
+	// TODO: добавить поле использован(t/f), чтобы проверять не украден ли токен.
+	// TODO: проверка на истечение токена
 	return session, nil
 }
 
