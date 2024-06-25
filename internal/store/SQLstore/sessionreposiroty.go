@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
+	"github.com/Quantum-calculators/MSU_UserService/internal/store"
 	token_generator "github.com/Quantum-calculators/MSU_UserService/internal/tokenGenerator"
 )
 
@@ -39,17 +40,20 @@ func (s *SessionRepository) CreateSession(userId uint32, fingerpring string) (*m
 }
 
 func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string) (*model.Session, error) {
-	var ID int
-	var user_id int
+	var ID, user_id, expires_in int
 	if err := s.store.db.QueryRow(
-		"SELECT id, user_id FROM sessions WHERE fingerprint = $1 AND refresh_token = $2;",
+		"SELECT id, user_id, expires_in FROM sessions WHERE fingerprint = $1 AND refresh_token = $2;",
 		fingerPrint,
 		refreshToken,
 	).Scan(
 		&ID,
 		&user_id,
+		&expires_in,
 	); err != nil {
 		return &model.Session{}, err
+	}
+	if expires_in > int(time.Now().Unix()) {
+		return &model.Session{}, store.ErrRefreshTokenExpired
 	}
 	session, err := s.CreateSession(uint32(user_id), fingerPrint)
 	if err != nil {
@@ -60,7 +64,6 @@ func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string)
 		return &model.Session{}, err
 	}
 	// TODO: добавить поле использован(t/f), чтобы проверять не украден ли токен.
-	// TODO: проверка на истечение токена
 	return session, nil
 }
 
