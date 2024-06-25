@@ -76,22 +76,22 @@ func (s *server) Login() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
+			s.error(w, http.StatusMethodNotAllowed, ErrorOnlyPostMethod.Error())
 			return
 		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			s.error(w, http.StatusUnprocessableEntity, "Incorrect request fields")
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
 			return
 		}
 
 		expectedU, err := s.store.User().FindByEmail(req.Email)
 		if err != nil {
 			if err == store.ErrRecordNotFound {
-				s.error(w, http.StatusNotFound, "There is no user with this email address")
+				s.error(w, http.StatusNotFound, ErrorNotFoundUserWithEmail.Error())
 				return
 			}
-			s.error(w, http.StatusInternalServerError, "Server error - the user could not be found")
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 		if !expectedU.ComparePassword(req.Password) {
@@ -101,7 +101,7 @@ func (s *server) Login() http.HandlerFunc {
 		if !expectedU.Verified {
 			VerToken, err := token_generator.GenerateRandomString(64)
 			if err != nil {
-				s.error(w, http.StatusInternalServerError, "User registration error")
+				s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 				return
 			}
 
@@ -111,13 +111,13 @@ func (s *server) Login() http.HandlerFunc {
 			}
 
 			if err := s.store.User().UpdateVerificationToken(expectedU.Email, VerToken); err != nil {
-				s.error(w, http.StatusInternalServerError, "Failed to update verification token")
+				s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 				return
 			}
 
 			body, err := json.Marshal(message)
 			if err != nil {
-				s.error(w, http.StatusInternalServerError, "Failed to send verification message")
+				s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 				return
 			}
 
@@ -126,7 +126,7 @@ func (s *server) Login() http.HandlerFunc {
 				s.error(w, http.StatusUnprocessableEntity, "")
 			}
 
-			s.error(w, http.StatusUnauthorized, "User not verified")
+			s.error(w, http.StatusUnauthorized, ErrorUserNotVerified.Error())
 			return
 		}
 
@@ -134,7 +134,7 @@ func (s *server) Login() http.HandlerFunc {
 		expectedU.Sanitize()
 		session, err := s.store.Session().CreateSession(uint32(expectedU.ID), GetFingerPrint(r))
 		if err != nil {
-			s.error(w, http.StatusInternalServerError, "Failed to create a session")
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 		resp := response{
@@ -142,7 +142,7 @@ func (s *server) Login() http.HandlerFunc {
 			ExpRefreshToken: int(session.ExpiresIn),
 		}
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
-			s.error(w, http.StatusUnprocessableEntity, "")
+			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
 			return
 		}
 	}
@@ -154,22 +154,22 @@ func (s *server) Logout() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
+			s.error(w, http.StatusMethodNotAllowed, ErrorOnlyPostMethod.Error())
 			return
 		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			s.error(w, http.StatusUnprocessableEntity, "Incorrect request fields")
+			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
 			return
 		}
 		if err := s.store.Session().DeleteSession(GetFingerPrint(r), req.RefreshToken); err != nil {
-			s.error(w, http.StatusInternalServerError, "Failed to delete a session")
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 	}
 }
 
-func (s *server) GetAccessToken() http.HandlerFunc {
+func (s *server) AccessToken() http.HandlerFunc {
 	type request struct {
 		RefreshToken string `json:"refreshToken"`
 	}
@@ -180,18 +180,17 @@ func (s *server) GetAccessToken() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
-			s.error(w, http.StatusMethodNotAllowed, "Only the GET method is allowed")
+			s.error(w, http.StatusMethodNotAllowed, ErrorOnlyGetMethod.Error())
 			return
 		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			s.error(w, http.StatusUnprocessableEntity, "Incorrect request fields")
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
 			return
 		}
 		session, err := s.store.Session().VerifyRefreshToken(GetFingerPrint(r), req.RefreshToken)
 		if err != nil {
-			w.WriteHeader(http.StatusNonAuthoritativeInfo)
-			s.error(w, http.StatusUnauthorized, "The session for this user was not found")
+			s.error(w, http.StatusUnauthorized, ErrorUserUnauth.Error())
 			return
 		}
 		user, err := s.store.User().GetUserByID(int(session.UserId))
@@ -207,7 +206,7 @@ func (s *server) GetAccessToken() http.HandlerFunc {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 		accessToken, err := token.SignedString([]byte(s.jwtSecretKey))
 		if err != nil {
-			s.error(w, http.StatusInternalServerError, "Failed to generate accessToken")
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 		resp := response{
@@ -216,7 +215,7 @@ func (s *server) GetAccessToken() http.HandlerFunc {
 			ExpRefreshToken: int(session.ExpiresIn),
 		}
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
-			s.error(w, http.StatusUnprocessableEntity, "")
+			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
 			return
 		}
 	}
@@ -229,17 +228,17 @@ func (s *server) Registration() http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
+			s.error(w, http.StatusMethodNotAllowed, ErrorOnlyPostMethod.Error())
 			return
 		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			s.error(w, http.StatusUnprocessableEntity, "Incorrect request fields")
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
 			return
 		}
 		VerToken, err := token_generator.GenerateRandomString(64)
 		if err != nil {
-			s.error(w, http.StatusInternalServerError, "User registration error")
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 		u := &model.User{
@@ -260,7 +259,7 @@ func (s *server) Registration() http.HandlerFunc {
 
 		body, err := json.Marshal(message)
 		if err != nil {
-			s.error(w, http.StatusInternalServerError, "Failed to send verification message")
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 
@@ -269,7 +268,7 @@ func (s *server) Registration() http.HandlerFunc {
 			s.error(w, http.StatusUnprocessableEntity, "")
 		}
 		if err := json.NewEncoder(w).Encode(u); err != nil {
-			s.error(w, http.StatusUnprocessableEntity, "")
+			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
@@ -279,7 +278,7 @@ func (s *server) Registration() http.HandlerFunc {
 func (s *server) Verification() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
-			s.error(w, http.StatusMethodNotAllowed, "Only the POST method is allowed")
+			s.error(w, http.StatusMethodNotAllowed, ErrorOnlyPostMethod.Error())
 			return
 		}
 		token := r.PathValue("token")
@@ -287,12 +286,12 @@ func (s *server) Verification() http.HandlerFunc {
 
 		ok, err := s.store.User().CheckVerificationToken(email, token)
 		if err != nil {
-			s.error(w, http.StatusInternalServerError, "Server error")
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 		err = s.store.User().SetVerify(email, ok)
 		if err != nil {
-			s.error(w, http.StatusInternalServerError, "Server error")
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 		w.WriteHeader(http.StatusOK)
