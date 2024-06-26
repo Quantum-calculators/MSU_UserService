@@ -1,12 +1,17 @@
 package store
 
-import "github.com/Quantum-calculators/MSU_UserService/internal/model"
+import (
+	"context"
+
+	"github.com/Quantum-calculators/MSU_UserService/internal/model"
+)
 
 type UserRepository interface {
 	// The function creates a record about the user in the database.
 	//
 	// 	Input params:
-	// 		1. type User struct {
+	//		1. context
+	// 		2. type User struct {
 	// 			ID                int
 	// 			Email             string
 	// 			Password          string
@@ -17,11 +22,12 @@ type UserRepository interface {
 	// 		}
 	// 	Output params:
 	// 		1. error or nil
-	Create(*model.User) error
+	Create(context.Context, *model.User) error
 	// The function searches for the user by his email.
 	//
 	// 	Input params:
-	// 		1. email string
+	//		1. context
+	// 		2. email string
 	// 	Output params:
 	// 		1. type User struct {
 	// 			ID                int
@@ -33,12 +39,13 @@ type UserRepository interface {
 	//			Verified          bool
 	// 		}
 	// 		2. error or nil
-	FindByEmail(string) (*model.User, error)
+	FindByEmail(context.Context, string) (*model.User, error)
 	// Updates the user's email.
 	// Accepts a new email and user model as input.
 	//
 	// 	Input params:
-	//		1. email string
+	//		1. context
+	//		2. email string
 	// 	Output params:
 	//		1. type User struct {
 	// 			ID                int
@@ -50,13 +57,14 @@ type UserRepository interface {
 	//			Verified          bool
 	// 		}
 	// 		2. error or nil
-	UpdateEmail(string, *model.User) error
+	UpdateEmail(context.Context, string, *model.User) error
 	// Updates the user's password.
 	// Accepts a new password and user model as input.
 	//
 	// 	Input params:
-	//		1. UserID int
-	// 		2. type User struct {
+	//		1. context
+	//		2. UserID int
+	// 		3. type User struct {
 	// 			ID                int
 	// 			Email             string
 	// 			Password          string
@@ -67,11 +75,12 @@ type UserRepository interface {
 	// 		}
 	// 	Output params:
 	//		1. error or nil
-	UpdatePassword(string, *model.User) error
+	UpdatePassword(context.Context, string, *model.User) error
 	// Finds the user in the database.
 	//
 	// 	Input params:
-	//		1. UserID int
+	//		1. context
+	//		2. UserID int
 	// 	Output params:
 	//		1. type User struct {
 	// 			ID                int
@@ -83,19 +92,20 @@ type UserRepository interface {
 	//			Verified          bool
 	// 		}
 	//		2. error or nil
-	GetUserByID(int) (*model.User, error)
+	GetUserByID(context.Context, int) (*model.User, error)
 	// Sets the user, with the passed Email, the verified field
 	//
 	// 	Input params:
-	//		1. Email string
-	//		2. Verify bool
+	//		1. context
+	//		2. Email string
+	//		3. Verify bool
 	// 	Output params:
 	//		1. error or nil
-	SetVerify(string, bool) error
+	SetVerify(context.Context, string, bool) error
 	// CheckVerificationToken...
-	CheckVerificationToken(string, string) (bool, error)
+	CheckVerificationToken(context.Context, string, string) (bool, error)
 	// UpdateVerificationToken...
-	UpdateVerificationToken(string, string) error
+	UpdateVerificationToken(context.Context, string, string) error
 }
 
 type CacheRepository interface {
@@ -107,8 +117,9 @@ type SessionRepository interface {
 	// The function checks the existence of a session with the specified parameters.
 	//
 	// 	Input params:
-	//		1. FingerPrint string
-	//		2. RefreshToken string
+	//		1. context
+	//		2. FingerPrint string
+	//		3. RefreshToken string
 	// 	Output param:
 	//		1. type Session struct {
 	//			ID           uint32
@@ -119,12 +130,13 @@ type SessionRepository interface {
 	//			CreatedAt    int64
 	//		}
 	//		2. error or nil
-	VerifyRefreshToken(string, string) (*model.Session, error)
+	VerifyRefreshToken(context.Context, string, string) (*model.Session, error)
 	//The function generates a Refresh Token and creates an entry in the session database with the specified fingerprint.
 	//
 	// 	Input params:
-	//		1. UserID int
-	//		2. FingerPrint string
+	//		1. context
+	//		2. UserID int
+	//		3. FingerPrint string
 	// 	Output param:
 	//		1. type Session struct {
 	//			ID           uint32
@@ -135,13 +147,14 @@ type SessionRepository interface {
 	//			CreatedAt    int64
 	//		}
 	//		2. error or nil
-	CreateSession(uint32, string) (*model.Session, error)
+	CreateSession(context.Context, uint32, string) (*model.Session, error)
 	// Deletes the session with the specified fingerprint and Refresh Token.
 	//
 	// 	Input params:
-	//		1. FingerPrint string
-	//		2. RefreshToken string
+	//		1. context
+	//		2. FingerPrint string
+	//		3. RefreshToken string
 	// 	Output param:
 	//		1. error or nil
-	DeleteSession(string, string) error
+	DeleteSession(context.Context, string, string) error
 }

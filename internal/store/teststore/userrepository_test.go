@@ -12,22 +12,23 @@ import (
 
 func TestUserRepository_Create(t *testing.T) {
 	s := testStore.New()
+
 	u := model.TestUser(t)
-	assert.NoError(t, s.User().Create(u))
+	assert.NoError(t, s.User().Create(nil, u))
 	assert.NotNil(t, u)
 }
 
 func TestUserRepository_FindByEmail(t *testing.T) {
 	s := testStore.New()
 	email := "testuser@test.com"
-	_, err := s.User().FindByEmail(email)
+	_, err := s.User().FindByEmail(nil, email)
 	assert.EqualError(t, err, store.ErrRecordNotFound.Error())
 
 	u := model.TestUser(t)
 	u.Email = email
-	s.User().Create(u)
+	s.User().Create(nil, u)
 
-	u, err = s.User().FindByEmail(email)
+	u, err = s.User().FindByEmail(nil, email)
 	assert.NoError(t, err)
 	assert.NotNil(t, u)
 }
@@ -36,12 +37,12 @@ func TestUserRepository_UpdateEmail(t *testing.T) {
 	s := testStore.New()
 	u := model.TestUser(t)
 	newEmail := "newemail@test.com"
-	err := s.User().UpdatePassword(newEmail, u)
+	err := s.User().UpdatePassword(nil, newEmail, u)
 	assert.NoError(t, err)
 
 	u2 := model.TestUser(t)
 	newEmailIncorrect := "IncorrectEmail"
-	err = s.User().UpdateEmail(newEmailIncorrect, u2)
+	err = s.User().UpdateEmail(nil, newEmailIncorrect, u2)
 
 	assert.Error(t, err)
 }
@@ -50,39 +51,39 @@ func TestUserRepository_UpdatePassword(t *testing.T) {
 	s := testStore.New()
 	u := model.TestUser(t)
 	newPas := "testPass12"
-	err := s.User().UpdatePassword(newPas, u)
+	err := s.User().UpdatePassword(nil, newPas, u)
 	assert.NoError(t, err)
 
 	newPasIncorrect := "incor" // len < 8
-	err = s.User().UpdatePassword(newPasIncorrect, u)
+	err = s.User().UpdatePassword(nil, newPasIncorrect, u)
 	assert.Error(t, err)
 }
 
 func TestUserRepository_GetUserByID(t *testing.T) {
 	s := testStore.New()
 	u := model.TestUser(t)
-	s.User().Create(u)
+	s.User().Create(nil, u)
 
-	_, err1 := s.User().GetUserByID(u.ID)
+	_, err1 := s.User().GetUserByID(nil, u.ID)
 	assert.NoError(t, err1)
 
-	_, err2 := s.User().GetUserByID(2)
+	_, err2 := s.User().GetUserByID(nil, 2)
 	assert.Error(t, err2)
 }
 
 func TestUserRepository_SetVerify(t *testing.T) {
 	s := testStore.New()
 	u := model.TestUser(t)
-	s.User().Create(u)
+	s.User().Create(nil, u)
 
-	NotVerifiedU, err1 := s.User().GetUserByID(u.ID)
+	NotVerifiedU, err1 := s.User().GetUserByID(nil, u.ID)
 	assert.NoError(t, err1)
 	assert.False(t, NotVerifiedU.Verified)
 
-	err2 := s.User().SetVerify(u.Email, true)
+	err2 := s.User().SetVerify(nil, u.Email, true)
 	assert.NoError(t, err2)
 
-	VerifiedU, err3 := s.User().GetUserByID(u.ID)
+	VerifiedU, err3 := s.User().GetUserByID(nil, u.ID)
 	assert.NoError(t, err3)
 	assert.True(t, VerifiedU.Verified)
 }
@@ -90,13 +91,13 @@ func TestUserRepository_SetVerify(t *testing.T) {
 func TestUserRepository_CheckVerificationToken(t *testing.T) {
 	s := testStore.New()
 	u := model.TestUser(t)
-	s.User().Create(u)
+	s.User().Create(nil, u)
 
-	pass, err := s.User().CheckVerificationToken(u.Email, u.VerificationToken)
+	pass, err := s.User().CheckVerificationToken(nil, u.Email, u.VerificationToken)
 	assert.NoError(t, err)
 	assert.True(t, pass)
 
-	pass1, err := s.User().CheckVerificationToken(u.Email, "not_valid_token")
+	pass1, err := s.User().CheckVerificationToken(nil, u.Email, "not_valid_token")
 	assert.NoError(t, err)
 	assert.False(t, pass1)
 }
@@ -104,20 +105,20 @@ func TestUserRepository_CheckVerificationToken(t *testing.T) {
 func TestUserRepository_UpdateVerificationToken(t *testing.T) {
 	s := testStore.New()
 	u := model.TestUser(t)
-	err := s.User().Create(u)
+	err := s.User().Create(nil, u)
 	assert.NoError(t, err)
 
-	pass, err := s.User().CheckVerificationToken(u.Email, u.VerificationToken)
+	pass, err := s.User().CheckVerificationToken(nil, u.Email, u.VerificationToken)
 	assert.NoError(t, err)
 	assert.True(t, pass)
 
 	newVerToken, err := token_generator.GenerateRandomString(64)
 	assert.NoError(t, err)
 
-	err = s.User().UpdateVerificationToken(u.Email, newVerToken)
+	err = s.User().UpdateVerificationToken(nil, u.Email, newVerToken)
 	assert.NoError(t, err)
 
-	pass1, err := s.User().CheckVerificationToken(u.Email, newVerToken)
+	pass1, err := s.User().CheckVerificationToken(nil, u.Email, newVerToken)
 	assert.NoError(t, err)
 	assert.True(t, pass1)
 }

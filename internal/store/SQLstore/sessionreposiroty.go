@@ -1,6 +1,8 @@
 package SQLstore
 
 import (
+	"context"
+	"database/sql"
 	"time"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
@@ -12,7 +14,9 @@ type SessionRepository struct {
 	store *Store
 }
 
-func (s *SessionRepository) CreateSession(userId uint32, fingerpring string) (*model.Session, error) {
+func (s *SessionRepository) CreateSession(ctxb context.Context, userId uint32, fingerpring string) (*model.Session, error) {
+	ctx, cancel := context.WithTimeout(ctxb, s.store.QueryTimeout)
+	defer cancel()
 	refreshToken, err := token_generator.GenerateRandomString(128)
 	if err != nil {
 		return &model.Session{}, err
@@ -24,7 +28,8 @@ func (s *SessionRepository) CreateSession(userId uint32, fingerpring string) (*m
 		ExpiresIn:    time.Now().Add(time.Minute * time.Duration(s.store.ExpRefreshToken)).Unix(),
 		CreatedAt:    time.Now().Unix(),
 	}
-	if err := s.store.db.QueryRow(
+	if err := s.store.db.QueryRowContext(
+		ctx,
 		"INSERT INTO sessions (user_id, refresh_token, fingerprint, expires_in, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;",
 		session.UserId,
 		session.RefreshToken,
@@ -39,36 +44,63 @@ func (s *SessionRepository) CreateSession(userId uint32, fingerpring string) (*m
 	return session, nil
 }
 
-func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string) (*model.Session, error) {
-	var ID, user_id, expires_in int
-	if err := s.store.db.QueryRow(
+func (s *SessionRepository) VerifyRefreshToken(ctxb context.Context, fingerPrint, refreshToken string) (*model.Session, error) {
+	ctx, cancel := context.WithTimeout(ctxb, s.store.QueryTimeout)
+	defer cancel()
+	session := &model.Session{}
+	newRefreshToken, err := token_generator.GenerateRandomString(128)
+	if err != nil {
+		return &model.Session{}, err
+	}
+	transaction, err := s.store.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return &model.Session{}, err
+	}
+	if err := transaction.QueryRowContext(ctx,
 		"SELECT id, user_id, expires_in FROM sessions WHERE fingerprint = $1 AND refresh_token = $2;",
 		fingerPrint,
 		refreshToken,
 	).Scan(
-		&ID,
-		&user_id,
-		&expires_in,
+		&session.ID,
+		&session.UserId,
+		&session.ExpiresIn,
 	); err != nil {
 		return &model.Session{}, err
 	}
-	if expires_in > int(time.Now().Unix()) {
+	if session.ExpiresIn < time.Now().Unix() {
 		return &model.Session{}, store.ErrRefreshTokenExpired
 	}
-	session, err := s.CreateSession(uint32(user_id), fingerPrint)
-	if err != nil {
+	newSession := &model.Session{
+		UserId:       session.UserId,
+		RefreshToken: newRefreshToken,
+		Fingerprint:  fingerPrint,
+		ExpiresIn:    time.Now().Add(time.Minute * time.Duration(s.store.ExpRefreshToken)).Unix(),
+		CreatedAt:    time.Now().Unix(),
+	}
+	if err := transaction.QueryRowContext(
+		ctx,
+		"INSERT INTO sessions (user_id, refresh_token, fingerprint, expires_in, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;",
+		uint32(newSession.UserId),
+		newRefreshToken,
+		fingerPrint,
+		newSession.ExpiresIn,
+		newSession.CreatedAt,
+	).Scan(
+		&newSession.ID,
+	); err != nil {
 		return &model.Session{}, err
 	}
-	err = s.DeleteSession(fingerPrint, refreshToken)
-	if err != nil {
+	if err := transaction.Commit(); err != nil {
 		return &model.Session{}, err
 	}
 	// TODO: добавить поле использован(t/f), чтобы проверять не украден ли токен.
-	return session, nil
+	return newSession, nil
 }
 
-func (s *SessionRepository) DeleteSession(fingerPrint, refreshToken string) error {
-	if err := s.store.db.QueryRow(
+func (s *SessionRepository) DeleteSession(ctxb context.Context, fingerPrint, refreshToken string) error {
+	ctx, cancel := context.WithTimeout(ctxb, s.store.QueryTimeout)
+	defer cancel()
+	if err := s.store.db.QueryRowContext(ctx,
 		"DELETE FROM sessions WHERE fingerprint = $1 AND refresh_token = $2;",
 		fingerPrint,
 		refreshToken,

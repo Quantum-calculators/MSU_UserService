@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -41,11 +40,13 @@ func Start(config *apiserverConf.Config, postgresConfPath, RabbitConfPath, Redis
 	}
 
 	Rstore := RedisStore.New(rdb)
-	sqlstore := SQLstore.New(SQLdb, config.ExpRefresh)
+	sqlstore := SQLstore.New(SQLdb, config.ExpRefresh, time.Millisecond*time.Duration(config.QueryTimeOut))
 	broker := messagebroker.New(RabbitChan)
 	srv := newServer(sqlstore, Rstore, broker, config.ExpAccess, config.JwtSecretKey)
+	loggerMiddleware := srv.Logging(srv)
+	PanicHookMiddleware := srv.PanicRecoveryMiddleware(loggerMiddleware)
 
-	return http.ListenAndServe(config.GenServerAddr(), srv)
+	return http.ListenAndServe(config.GenServerAddr(), PanicHookMiddleware)
 }
 
 func MakePostgres(configFilePath string) (*sql.DB, error) {
@@ -59,7 +60,6 @@ func MakePostgres(configFilePath string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(conf.GetSQLaddr())
 	db.QueryRow("")
 	if err := db.Ping(); err != nil {
 		return nil, err
@@ -74,7 +74,6 @@ func MakeBroker(configFilePath string) (*amqp.Channel, error) {
 		return nil, err
 	}
 	conf.WithDefaults()
-	fmt.Println(conf.GetAMQPaddr())
 	conn, err := amqp.Dial(conf.GetAMQPaddr())
 	if err != nil {
 		return nil, errors.New("failed to connect to AMPQ")

@@ -1,6 +1,7 @@
 package testStore
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -14,7 +15,7 @@ type SessionRepository struct {
 	sessions map[string]*model.Session
 }
 
-func (s *SessionRepository) CreateSession(userId uint32, fingerpring string) (*model.Session, error) {
+func (s *SessionRepository) CreateSession(cxt context.Context, userId uint32, fingerpring string) (*model.Session, error) {
 	refreshToken, err := token_generator.GenerateRandomString(64)
 	if err != nil {
 		return &model.Session{}, err
@@ -30,13 +31,16 @@ func (s *SessionRepository) CreateSession(userId uint32, fingerpring string) (*m
 	return session, nil
 }
 
-func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string) (*model.Session, error) {
+func (s *SessionRepository) VerifyRefreshToken(cxt context.Context, fingerPrint, refreshToken string) (*model.Session, error) {
 	fmt.Println(refreshToken)
 	session, ok := s.sessions[refreshToken]
 	if ok && session.Fingerprint == fingerPrint && session.RefreshToken == refreshToken {
-		newSession, err := s.CreateSession(uint32(session.UserId), fingerPrint)
-		if err != nil {
-			return &model.Session{}, err
+		newSession := &model.Session{
+			UserId:       session.UserId,
+			RefreshToken: refreshToken,
+			Fingerprint:  fingerPrint,
+			ExpiresIn:    time.Now().Add(time.Duration(6 * 10e10)).Unix(),
+			CreatedAt:    time.Now().Unix(),
 		}
 		return newSession, nil
 	} else {
@@ -44,7 +48,7 @@ func (s *SessionRepository) VerifyRefreshToken(fingerPrint, refreshToken string)
 	}
 }
 
-func (s *SessionRepository) DeleteSession(fingerPrint, refreshToken string) error {
+func (s *SessionRepository) DeleteSession(cxt context.Context, fingerPrint, refreshToken string) error {
 	_, ok := s.sessions[refreshToken]
 	if !ok {
 		return errors.New("session not found")

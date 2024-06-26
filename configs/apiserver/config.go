@@ -3,11 +3,12 @@ package apiserver
 import "fmt"
 
 const (
-	defaultPort       = "8080"
-	defaultHost       = "localhost"
-	defaultLogLevel   = "Debug"
-	defaultExpRefresh = 30
-	defaultExpAccess  = 5
+	defaultPort         = "8080"
+	defaultHost         = "localhost"
+	defaultLogLevel     = "Debug"
+	defaultExpRefresh   = 30
+	defaultExpAccess    = 5
+	defaultQueryTimeOut = 500 //millisecond
 )
 
 type Config struct {
@@ -17,6 +18,7 @@ type Config struct {
 	ExpRefresh   int    `toml:"exp_refresh_token_in_min"`
 	ExpAccess    int    `toml:"exp_access_token_in_min"`
 	JwtSecretKey string `toml:"jwt_secret_key"`
+	QueryTimeOut int    `toml:"query_timeout"` //millisecond
 }
 
 func (c *Config) WithDefaults() {
@@ -34,6 +36,9 @@ func (c *Config) WithDefaults() {
 	}
 	if c.ExpRefresh == 0 {
 		c.ExpRefresh = defaultExpAccess
+	}
+	if c.QueryTimeOut == 0 {
+		c.QueryTimeOut = defaultQueryTimeOut
 	}
 }
 
