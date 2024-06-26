@@ -1,6 +1,10 @@
 package store
 
-import "github.com/Quantum-calculators/MSU_UserService/internal/model"
+import (
+	"context"
+
+	"github.com/Quantum-calculators/MSU_UserService/internal/model"
+)
 
 type UserRepository interface {
 	// The function creates a record about the user in the database.
@@ -17,7 +21,7 @@ type UserRepository interface {
 	// 		}
 	// 	Output params:
 	// 		1. error or nil
-	Create(*model.User) error
+	Create(context.Context, *model.User) error
 	// The function searches for the user by his email.
 	//
 	// 	Input params:
@@ -33,7 +37,7 @@ type UserRepository interface {
 	//			Verified          bool
 	// 		}
 	// 		2. error or nil
-	FindByEmail(string) (*model.User, error)
+	FindByEmail(context.Context, string) (*model.User, error)
 	// Updates the user's email.
 	// Accepts a new email and user model as input.
 	//
@@ -50,7 +54,7 @@ type UserRepository interface {
 	//			Verified          bool
 	// 		}
 	// 		2. error or nil
-	UpdateEmail(string, *model.User) error
+	UpdateEmail(context.Context, string, *model.User) error
 	// Updates the user's password.
 	// Accepts a new password and user model as input.
 	//
@@ -67,7 +71,7 @@ type UserRepository interface {
 	// 		}
 	// 	Output params:
 	//		1. error or nil
-	UpdatePassword(string, *model.User) error
+	UpdatePassword(context.Context, string, *model.User) error
 	// Finds the user in the database.
 	//
 	// 	Input params:
@@ -83,7 +87,7 @@ type UserRepository interface {
 	//			Verified          bool
 	// 		}
 	//		2. error or nil
-	GetUserByID(int) (*model.User, error)
+	GetUserByID(context.Context, int) (*model.User, error)
 	// Sets the user, with the passed Email, the verified field
 	//
 	// 	Input params:
@@ -91,11 +95,11 @@ type UserRepository interface {
 	//		2. Verify bool
 	// 	Output params:
 	//		1. error or nil
-	SetVerify(string, bool) error
+	SetVerify(context.Context, string, bool) error
 	// CheckVerificationToken...
-	CheckVerificationToken(string, string) (bool, error)
+	CheckVerificationToken(context.Context, string, string) (bool, error)
 	// UpdateVerificationToken...
-	UpdateVerificationToken(string, string) error
+	UpdateVerificationToken(context.Context, string, string) error
 }
 
 type CacheRepository interface {

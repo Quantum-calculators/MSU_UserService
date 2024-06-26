@@ -8,4 +8,5 @@ var (
 	ErrUpdateEmailFailed   = errors.New("store: failed to update email")
 	ErrUpdatePassFailed    = errors.New("store: failed to update password")
 	ErrRefreshTokenExpired = errors.New("store: refreshToken has expired")
+	ErrTimeOut             = errors.New("store: query timeout")
 )

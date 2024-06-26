@@ -13,7 +13,7 @@ func TestSessionRepository_CreateSession(t *testing.T) {
 	s := testStore.New()
 
 	u := model.TestUser(t)
-	assert.NoError(t, s.User().Create(u))
+	assert.NoError(t, s.User().Create(nil, u))
 	session := model.TestSession(t)
 	fmt.Println(u)
 	_, err := s.Session().CreateSession(uint32(u.ID), session.Fingerprint)
@@ -25,7 +25,7 @@ func TestSessionRepository_VerifyRefreshToken(t *testing.T) {
 
 	session := model.TestSession(t)
 	u := model.TestUser(t)
-	assert.NoError(t, s.User().Create(u))
+	assert.NoError(t, s.User().Create(nil, u))
 
 	session, err := s.Session().CreateSession(uint32(u.ID), session.Fingerprint)
 	assert.NoError(t, err)
@@ -42,7 +42,7 @@ func TestSessionRepository_DeleteSession(t *testing.T) {
 
 	session := model.TestSession(t)
 	u := model.TestUser(t)
-	assert.NoError(t, s.User().Create(u))
+	assert.NoError(t, s.User().Create(nil, u))
 	session, err := s.Session().CreateSession(uint32(u.ID), session.Fingerprint)
 	assert.NoError(t, err)
 

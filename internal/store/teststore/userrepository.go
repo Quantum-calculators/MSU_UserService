@@ -1,6 +1,7 @@
 package testStore
 
 import (
+	"context"
 	"errors"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
@@ -12,7 +13,7 @@ type UserRepository struct {
 	users map[string]*model.User
 }
 
-func (r *UserRepository) Create(u *model.User) error {
+func (r *UserRepository) Create(ctxb context.Context, u *model.User) error {
 	if err := u.Validate(); err != nil {
 		return err // The Validate function can return two errors: 'invalid password' or 'invalid email'
 	}
@@ -30,7 +31,7 @@ func (r *UserRepository) Create(u *model.User) error {
 	return nil
 }
 
-func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
+func (r *UserRepository) FindByEmail(ctxb context.Context, email string) (*model.User, error) {
 	u, ok := r.users[email]
 	if !ok {
 		return nil, store.ErrRecordNotFound
@@ -38,7 +39,7 @@ func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 	return u, nil
 }
 
-func (r *UserRepository) UpdateEmail(newEmail string, u *model.User) error {
+func (r *UserRepository) UpdateEmail(ctxb context.Context, newEmail string, u *model.User) error {
 	if !model.ValidEmail(newEmail) {
 		return model.ErrInvalidEmail
 	}
@@ -49,7 +50,7 @@ func (r *UserRepository) UpdateEmail(newEmail string, u *model.User) error {
 	return nil
 }
 
-func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
+func (r *UserRepository) UpdatePassword(ctxb context.Context, password string, u *model.User) error {
 	if !model.ValidPassword(password) {
 		return model.ErrInvalidPass
 	}
@@ -60,7 +61,7 @@ func (r *UserRepository) UpdatePassword(password string, u *model.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
+func (r *UserRepository) GetUserByID(ctxb context.Context, UserID int) (*model.User, error) {
 	for _, j := range r.users {
 		if j.ID == UserID {
 			return j, nil
@@ -69,7 +70,7 @@ func (r *UserRepository) GetUserByID(UserID int) (*model.User, error) {
 	return &model.User{}, store.ErrRecordNotFound
 }
 
-func (r *UserRepository) SetVerify(Email string, verify bool) error {
+func (r *UserRepository) SetVerify(ctxb context.Context, Email string, verify bool) error {
 	_, ok := r.users[Email]
 	if !ok {
 		return errors.New("user not found")
@@ -78,7 +79,7 @@ func (r *UserRepository) SetVerify(Email string, verify bool) error {
 	return nil
 }
 
-func (r *UserRepository) CheckVerificationToken(Email, token string) (bool, error) {
+func (r *UserRepository) CheckVerificationToken(ctxb context.Context, Email, token string) (bool, error) {
 	_, ok := r.users[Email]
 	if !ok {
 		return false, errors.New("user not found")
@@ -90,7 +91,7 @@ func (r *UserRepository) CheckVerificationToken(Email, token string) (bool, erro
 	return false, nil
 }
 
-func (r *UserRepository) UpdateVerificationToken(Email, token string) error {
+func (r *UserRepository) UpdateVerificationToken(ctxb context.Context, Email, token string) error {
 	user, ok := r.users[Email]
 	if !ok {
 		return errors.New("user not found")
