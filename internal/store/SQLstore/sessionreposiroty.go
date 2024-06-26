@@ -72,7 +72,7 @@ func (s *SessionRepository) VerifyRefreshToken(ctxb context.Context, fingerPrint
 	}
 	newSession := &model.Session{
 		UserId:       session.UserId,
-		RefreshToken: refreshToken,
+		RefreshToken: newRefreshToken,
 		Fingerprint:  fingerPrint,
 		ExpiresIn:    time.Now().Add(time.Minute * time.Duration(s.store.ExpRefreshToken)).Unix(),
 		CreatedAt:    time.Now().Unix(),
@@ -86,7 +86,7 @@ func (s *SessionRepository) VerifyRefreshToken(ctxb context.Context, fingerPrint
 		newSession.ExpiresIn,
 		newSession.CreatedAt,
 	).Scan(
-		&session.ID,
+		&newSession.ID,
 	); err != nil {
 		return &model.Session{}, err
 	}
@@ -94,7 +94,7 @@ func (s *SessionRepository) VerifyRefreshToken(ctxb context.Context, fingerPrint
 		return &model.Session{}, err
 	}
 	// TODO: добавить поле использован(t/f), чтобы проверять не украден ли токен.
-	return session, nil
+	return newSession, nil
 }
 
 func (s *SessionRepository) DeleteSession(ctxb context.Context, fingerPrint, refreshToken string) error {

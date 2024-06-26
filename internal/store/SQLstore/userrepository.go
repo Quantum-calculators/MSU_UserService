@@ -3,6 +3,7 @@ package SQLstore
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
@@ -21,13 +22,19 @@ func (r *UserRepository) Create(ctxb context.Context, u *model.User) error {
 	if err := u.BeforeCreate(); err != nil {
 		return model.ErrEncryptedPassword
 	}
-	if err := r.store.db.QueryRowContext(ctx,
+	err := r.store.db.QueryRowContext(ctx,
 		"INSERT INTO users (email, encrypted_password, verification_token) VALUES ($1, $2, $3) RETURNING id",
 		u.Email,
 		u.EncryptedPassword,
 		u.VerificationToken,
-	).Scan(&u.ID); err != nil {
+	).Scan(&u.ID)
+	switch {
+	case err == nil:
+		return nil
+	case strings.Contains(err.Error(), "duplicate key value violates unique constraint"):
 		return store.ErrExistUserWithEmail
+	case err != nil:
+		return store.ErrUnidentified
 	}
 	return nil
 }

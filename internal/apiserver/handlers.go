@@ -1,7 +1,9 @@
 package apiserver
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -86,11 +88,14 @@ func (s *server) Login() http.HandlerFunc {
 		}
 
 		expectedU, err := s.store.User().FindByEmail(r.Context(), req.Email)
-		if err != nil {
-			if err == store.ErrRecordNotFound {
-				s.error(w, http.StatusNotFound, ErrorNotFoundUserWithEmail.Error())
-				return
-			}
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case errors.Is(err, store.ErrRecordNotFound): // <- плохо тянуть константы из зависимостей
+			s.error(w, http.StatusNotFound, ErrorNotFoundUserWithEmail.Error())
+			return
+		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
@@ -110,7 +115,12 @@ func (s *server) Login() http.HandlerFunc {
 				URL:   VerificationURL + VerToken,
 			}
 
-			if err := s.store.User().UpdateVerificationToken(r.Context(), expectedU.Email, VerToken); err != nil {
+			err = s.store.User().UpdateVerificationToken(r.Context(), expectedU.Email, VerToken)
+			switch {
+			case errors.Is(err, context.DeadlineExceeded):
+				s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+				return
+			case err != nil:
 				s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 				return
 			}
@@ -133,7 +143,11 @@ func (s *server) Login() http.HandlerFunc {
 		// добавить проверку по полю Verified
 		expectedU.Sanitize()
 		session, err := s.store.Session().CreateSession(r.Context(), uint32(expectedU.ID), GetFingerPrint(r))
-		if err != nil {
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
@@ -162,7 +176,12 @@ func (s *server) Logout() http.HandlerFunc {
 			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
 			return
 		}
-		if err := s.store.Session().DeleteSession(r.Context(), GetFingerPrint(r), req.RefreshToken); err != nil {
+		err := s.store.Session().DeleteSession(r.Context(), GetFingerPrint(r), req.RefreshToken)
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
@@ -189,13 +208,21 @@ func (s *server) AccessToken() http.HandlerFunc {
 			return
 		}
 		session, err := s.store.Session().VerifyRefreshToken(r.Context(), GetFingerPrint(r), req.RefreshToken)
-		if err != nil {
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
 			s.error(w, http.StatusUnauthorized, ErrorUserUnauth.Error())
 			return
 		}
 		user, err := s.store.User().GetUserByID(r.Context(), int(session.UserId))
-		if err != nil {
-			s.error(w, http.StatusInternalServerError, "")
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 		payload := jwt.MapClaims{
@@ -246,8 +273,14 @@ func (s *server) Registration() http.HandlerFunc {
 			Password:          req.Password,
 			VerificationToken: VerToken,
 		}
-		if err := s.store.User().Create(r.Context(), u); err != nil {
-			s.error(w, http.StatusUnprocessableEntity, err.Error())
+
+		err = s.store.User().Create(r.Context(), u)
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
+			s.error(w, http.StatusForbidden, err.Error())
 			return
 		}
 		u.Sanitize()
@@ -285,12 +318,21 @@ func (s *server) Verification() http.HandlerFunc {
 		email := r.PathValue("email")
 
 		ok, err := s.store.User().CheckVerificationToken(r.Context(), email, token)
-		if err != nil {
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
 		err = s.store.User().SetVerify(r.Context(), email, ok)
-		if err != nil {
+
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
