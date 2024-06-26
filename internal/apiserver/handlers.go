@@ -85,7 +85,7 @@ func (s *server) Login() http.HandlerFunc {
 			return
 		}
 
-		expectedU, err := s.store.User().FindByEmail(req.Email)
+		expectedU, err := s.store.User().FindByEmail(r.Context(), req.Email)
 		if err != nil {
 			if err == store.ErrRecordNotFound {
 				s.error(w, http.StatusNotFound, ErrorNotFoundUserWithEmail.Error())
@@ -110,7 +110,7 @@ func (s *server) Login() http.HandlerFunc {
 				URL:   VerificationURL + VerToken,
 			}
 
-			if err := s.store.User().UpdateVerificationToken(expectedU.Email, VerToken); err != nil {
+			if err := s.store.User().UpdateVerificationToken(r.Context(), expectedU.Email, VerToken); err != nil {
 				s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 				return
 			}
@@ -193,7 +193,7 @@ func (s *server) AccessToken() http.HandlerFunc {
 			s.error(w, http.StatusUnauthorized, ErrorUserUnauth.Error())
 			return
 		}
-		user, err := s.store.User().GetUserByID(int(session.UserId))
+		user, err := s.store.User().GetUserByID(r.Context(), int(session.UserId))
 		if err != nil {
 			s.error(w, http.StatusInternalServerError, "")
 			return
@@ -246,12 +246,11 @@ func (s *server) Registration() http.HandlerFunc {
 			Password:          req.Password,
 			VerificationToken: VerToken,
 		}
-		if err := s.store.User().Create(u); err != nil {
+		if err := s.store.User().Create(r.Context(), u); err != nil {
 			s.error(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		u.Sanitize()
-
 		message := brokerMessage{
 			Email: u.Email,
 			URL:   VerificationURL + VerToken,
@@ -265,13 +264,14 @@ func (s *server) Registration() http.HandlerFunc {
 
 		err = s.broker.Message().SendMessage(body, "/VerifyEmail")
 		if err != nil {
-			s.error(w, http.StatusUnprocessableEntity, "")
-		}
-		if err := json.NewEncoder(w).Encode(u); err != nil {
-			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
-		w.WriteHeader(http.StatusCreated)
+		if err := json.NewEncoder(w).Encode(u); err != nil {
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+			return
+		}
+		// w.WriteHeader(http.StatusCreated)
 	}
 }
 
@@ -284,12 +284,12 @@ func (s *server) Verification() http.HandlerFunc {
 		token := r.PathValue("token")
 		email := r.PathValue("email")
 
-		ok, err := s.store.User().CheckVerificationToken(email, token)
+		ok, err := s.store.User().CheckVerificationToken(r.Context(), email, token)
 		if err != nil {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
-		err = s.store.User().SetVerify(email, ok)
+		err = s.store.User().SetVerify(r.Context(), email, ok)
 		if err != nil {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
