@@ -132,7 +132,7 @@ func (s *server) Login() http.HandlerFunc {
 
 		// добавить проверку по полю Verified
 		expectedU.Sanitize()
-		session, err := s.store.Session().CreateSession(uint32(expectedU.ID), GetFingerPrint(r))
+		session, err := s.store.Session().CreateSession(r.Context(), uint32(expectedU.ID), GetFingerPrint(r))
 		if err != nil {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
@@ -162,7 +162,7 @@ func (s *server) Logout() http.HandlerFunc {
 			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
 			return
 		}
-		if err := s.store.Session().DeleteSession(GetFingerPrint(r), req.RefreshToken); err != nil {
+		if err := s.store.Session().DeleteSession(r.Context(), GetFingerPrint(r), req.RefreshToken); err != nil {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
@@ -188,7 +188,7 @@ func (s *server) AccessToken() http.HandlerFunc {
 			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
 			return
 		}
-		session, err := s.store.Session().VerifyRefreshToken(GetFingerPrint(r), req.RefreshToken)
+		session, err := s.store.Session().VerifyRefreshToken(r.Context(), GetFingerPrint(r), req.RefreshToken)
 		if err != nil {
 			s.error(w, http.StatusUnauthorized, ErrorUserUnauth.Error())
 			return
