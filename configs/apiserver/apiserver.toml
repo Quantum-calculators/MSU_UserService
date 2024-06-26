@@ -3,3 +3,4 @@ port = "8080"
 loglevel = "Debug"
 jwt_secret_key = "tNI0eFPyoBW3meQqDJNQdJK5dVLV7-zDzGCjgDxtInKG87xWajjzNjIzwjTG5hzo"
 query_timeout = 100
+db_max_open_conns = 10

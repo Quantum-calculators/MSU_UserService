@@ -21,7 +21,7 @@ import (
 )
 
 func Start(config *apiserverConf.Config, postgresConfPath, RabbitConfPath, RedisConfPath string) error {
-	SQLdb, err := MakePostgres(postgresConfPath)
+	SQLdb, err := MakePostgres(postgresConfPath, config.DBMaxOpenConns)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func Start(config *apiserverConf.Config, postgresConfPath, RabbitConfPath, Redis
 	return http.ListenAndServe(config.GenServerAddr(), PanicHookMiddleware)
 }
 
-func MakePostgres(configFilePath string) (*sql.DB, error) {
+func MakePostgres(configFilePath string, maxOpenConns int) (*sql.DB, error) {
 	conf := &postgres.Config{}
 	_, err := toml.DecodeFile(configFilePath, conf)
 	if err != nil {
@@ -57,6 +57,7 @@ func MakePostgres(configFilePath string) (*sql.DB, error) {
 	}
 	conf.WithDefaults()
 	db, err := sql.Open("postgres", conf.GetSQLaddr())
+	db.SetMaxOpenConns(maxOpenConns)
 	if err != nil {
 		return nil, err
 	}

@@ -3,22 +3,24 @@ package apiserver
 import "fmt"
 
 const (
-	defaultPort         = "8080"
-	defaultHost         = "localhost"
-	defaultLogLevel     = "Debug"
-	defaultExpRefresh   = 30
-	defaultExpAccess    = 5
-	defaultQueryTimeOut = 500 //millisecond
+	defaultPort           = "8080"
+	defaultHost           = "localhost"
+	defaultLogLevel       = "Debug"
+	defaultExpRefresh     = 30
+	defaultExpAccess      = 5
+	defaultQueryTimeOut   = 500 //millisecond
+	defaultDBMaxOpenConns = 10
 )
 
 type Config struct {
-	Port         string `toml:"port"`
-	Host         string `toml:"host"`
-	LogLevel     string `toml:"loglevel"`
-	ExpRefresh   int    `toml:"exp_refresh_token_in_min"`
-	ExpAccess    int    `toml:"exp_access_token_in_min"`
-	JwtSecretKey string `toml:"jwt_secret_key"`
-	QueryTimeOut int    `toml:"query_timeout"` //millisecond
+	Port           string `toml:"port"`
+	Host           string `toml:"host"`
+	LogLevel       string `toml:"loglevel"`
+	ExpRefresh     int    `toml:"exp_refresh_token_in_min"`
+	ExpAccess      int    `toml:"exp_access_token_in_min"`
+	JwtSecretKey   string `toml:"jwt_secret_key"`
+	QueryTimeOut   int    `toml:"query_timeout"` //millisecond
+	DBMaxOpenConns int    `toml:"db_max_open_conns"`
 }
 
 func (c *Config) WithDefaults() {
@@ -39,6 +41,9 @@ func (c *Config) WithDefaults() {
 	}
 	if c.QueryTimeOut == 0 {
 		c.QueryTimeOut = defaultQueryTimeOut
+	}
+	if c.DBMaxOpenConns == 0 {
+		c.DBMaxOpenConns = defaultDBMaxOpenConns
 	}
 }
 
