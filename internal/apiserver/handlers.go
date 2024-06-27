@@ -37,6 +37,7 @@ func (s *server) error(w http.ResponseWriter, statusCode int, message string) er
 		Message:     message,
 	}
 	s.logger.Errorf("status code: %d, Error: %s", statusCode, message)
+	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		s.logger.Errorf("status code: %d, Error: %s", http.StatusInternalServerError, err.Error())
@@ -288,7 +289,6 @@ func (s *server) Registration() http.HandlerFunc {
 			Email: u.Email,
 			URL:   VerificationURL + VerToken,
 		}
-
 		body, err := json.Marshal(message)
 		if err != nil {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
