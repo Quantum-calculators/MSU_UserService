@@ -39,9 +39,12 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/hello", s.HandleHello())
+	s.router.HandleFunc("/methods", s.Methods())
 	s.router.HandleFunc("/registration", s.Registration())
 	s.router.HandleFunc("/login", s.Login())
-	s.router.HandleFunc("/GAT", s.AccessToken())
+	s.router.HandleFunc("/get_access_token", s.AccessToken())
 	s.router.HandleFunc("/logout", s.Logout())
-	s.router.HandleFunc("/verification/{token}/{email}", s.Verification())
+	s.router.HandleFunc("/password_recovery", s.PasswordRecovery())
+	s.router.HandleFunc("/confirmation_password_recovery", s.СonfirmationPasswordRecovery())
+
 }

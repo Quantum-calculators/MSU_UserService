@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 
 // Перенести в конфигурацию
 const VerificationURL = "127.0.0.1:8080/verification/"
+const PasswordRecoveryURL = "127.0.0.1:8080/verification/"
 
 type brokerMessage struct {
 	Email string
@@ -64,6 +66,27 @@ func (s *server) HandleHello() http.HandlerFunc {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(HTML))
+	}
+}
+
+func (s *server) Methods() http.HandlerFunc {
+	type response struct {
+		URI []string `json:"uri"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		resp := response{
+			URI: []string{
+				"/registration",
+				"/login",
+				"/GAT",
+				"/logout",
+				"/verification/{token}/{email}",
+			},
+		}
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
+			return
+		}
 	}
 }
 
@@ -336,6 +359,102 @@ func (s *server) Verification() http.HandlerFunc {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+// Пользователь делает запрос на PasswordRecovery,
+// далее ему отправляется письмо на email, где он переходит
+// по ссылке. Далее заполняя поле password пользователь
+// отправляет POST запрос формата: /confirm_p_r с body формата request
+func (s *server) СonfirmationPasswordRecovery() http.HandlerFunc {
+	type request struct {
+		NewPassword string `json:"newpassword"`
+		Token       string `json:"token"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			s.error(w, http.StatusMethodNotAllowed, ErrorOnlyPostMethod.Error())
+			return
+		}
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
+			return
+		}
+
+		email, err := s.store.User().CheckRecoveryPasswordToken(r.Context(), req.Token) // <- проверяем на существование токена
+		switch {                                                                        // Если токен существует - возвращаем email
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case errors.Is(err, sql.ErrNoRows):
+			s.error(w, http.StatusForbidden, "") // <- добавить ошибку
+			return
+		}
+		err = s.store.User().ChangePassword(r.Context(), email, req.NewPassword) // <- меняем пароль на переданный в запросе
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+			return
+		}
+
+		err = s.store.Session().DeleteAllSession(r.Context(), email) // <- разлогиневаем пользователя во всех сессиях
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (s *server) PasswordRecovery() http.HandlerFunc {
+	type request struct {
+		Email string `json:"email"`
+	}
+	type response struct {
+		Email string `json:"email"`
+		Token string `json:"token"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			s.error(w, http.StatusMethodNotAllowed, ErrorOnlyPostMethod.Error())
+			return
+		}
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
+			return
+		}
+		token, err := token_generator.GenerateRandomString(128)
+
+		err = s.store.User().CreatePasswordRecoveryToken(r.Context(), req.Email, token)
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+			return
+		}
+
+		resp := response{
+			Email: req.Email,
+			Token: token,
+		}
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 	}
 }
