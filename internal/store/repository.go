@@ -63,7 +63,7 @@ type UserRepository interface {
 	//
 	// 	Input params:
 	//		1. context
-	//		2. UserID int
+	//		2. password string
 	// 		3. type User struct {
 	// 			ID                int
 	// 			Email             string
