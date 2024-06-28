@@ -458,3 +458,49 @@ func (s *server) PasswordRecovery() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 	}
 }
+
+func (s *server) Login() http.HandlerFunc {
+	type request struct {
+		Email       string `json:"email"`
+		Password    string `json:"password"`
+		NewPassword string `json:"new_password"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			s.error(w, http.StatusMethodNotAllowed, ErrorOnlyPostMethod.Error())
+			return
+		}
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
+			return
+		}
+
+		expectedU, err := s.store.User().FindByEmail(r.Context(), req.Email)
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case errors.Is(err, store.ErrRecordNotFound): // <- плохо тянуть константы из зависимостей
+			s.error(w, http.StatusNotFound, ErrorNotFoundUserWithEmail.Error())
+			return
+		case err != nil:
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+			return
+		}
+		if !expectedU.ComparePassword(req.Password) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		err = s.store.User().UpdatePassword(r.Context(), req.NewPassword, expectedU)
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case err != nil:
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+	}
+}

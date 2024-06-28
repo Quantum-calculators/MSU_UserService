@@ -46,5 +46,5 @@ func (s *server) ConfigureRouter() {
 	s.router.HandleFunc("/logout", s.Logout())
 	s.router.HandleFunc("/password_recovery", s.PasswordRecovery())
 	s.router.HandleFunc("/confirmation_password_recovery", s.СonfirmationPasswordRecovery())
-
+	s.router.HandleFunc("/change_password", s.ChangePassword())
 }
