@@ -163,3 +163,26 @@ func TestUserRepository_UpdateVerificationToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, pass1)
 }
+
+func TestUserRepository_CreatePasswordRecoveryToken(t *testing.T) {
+	db, teardown := SQLstore.TestDB(t, databaseURL)
+	defer teardown("users", "recovery_tokens")
+	s := SQLstore.New(db, 5, time.Millisecond*100)
+	ctxb := context.Background()
+
+	u := model.TestUser(t)
+	err := s.User().Create(ctxb, u)
+	assert.NoError(t, err)
+
+	token1, _ := token_generator.GenerateRandomString(128)
+	fmt.Println(u)
+	err = s.User().CreatePasswordRecoveryToken(ctxb, u.Email, token1)
+	assert.NoError(t, err)
+
+	fmt.Println(token1)
+
+	token2, err := s.User().GetRecoveryPasswordToken(ctxb, u.Email)
+	assert.NoError(t, err)
+
+	assert.Equal(t, token1, token2)
+}

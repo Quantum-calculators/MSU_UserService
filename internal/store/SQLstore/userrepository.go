@@ -3,6 +3,7 @@ package SQLstore
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 
@@ -158,18 +159,27 @@ func (r *UserRepository) CreatePasswordRecoveryToken(ctxb context.Context, email
 	defer cancel()
 
 	err := r.store.db.QueryRowContext(ctx,
-		"DELETE FROM recovery_tokens WHERE email = $1",
+		"DELETE FROM recovery_tokens WHERE email = $1;",
 		email,
 	).Err()
 	if err != nil {
 		return err
 	}
-	return r.store.db.QueryRowContext(ctx,
-		"INSERT INTO recovery_tokens (email, token, created_at) VALUES $1, $2, $3;",
+
+	err = r.store.db.QueryRowContext(ctx,
+		"INSERT INTO recovery_tokens (email, token, created_at) VALUES ($1, $2, $3) RETURNING email;",
 		email,
 		token,
 		time.Now().Unix(),
 	).Err()
+	if err != nil {
+		return err
+	}
+	fmt.Println(email, token, time.Now().Unix())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *UserRepository) GetRecoveryPasswordToken(ctxb context.Context, email string) (string, error) {
@@ -181,11 +191,10 @@ func (r *UserRepository) GetRecoveryPasswordToken(ctxb context.Context, email st
 		"SELECT token FROM recovery_tokens WHERE email = $1;",
 		email,
 	).Scan(
-		validToken,
+		&validToken,
 	)
 	if err != nil {
 		return "", err
 	}
 	return validToken, nil
-
 }
