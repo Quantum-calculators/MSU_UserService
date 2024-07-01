@@ -10,4 +10,5 @@ var (
 	ErrorUserNotVerified       = errors.New("user not verified")
 	ErrorOnlyGetMethod         = errors.New("only the GET method is allowed")
 	ErrorUserUnauth            = errors.New("the session for this user was not found")
+	ErrNotFound                = errors.New("records not found")
 )

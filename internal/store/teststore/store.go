@@ -21,8 +21,9 @@ func (s *Store) User() store.UserRepository {
 	}
 
 	s.userRepository = &UserRepository{
-		store: s,
-		users: make(map[string]*model.User),
+		store:          s,
+		users:          make(map[string]*model.User),
+		recoveryTokens: make(map[string]*model.RecoveryToken),
 	}
 
 	return s.userRepository
