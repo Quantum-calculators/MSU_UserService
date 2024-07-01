@@ -3,7 +3,6 @@ package SQLstore
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strings"
 	"time"
 
@@ -175,7 +174,6 @@ func (r *UserRepository) CreatePasswordRecoveryToken(ctxb context.Context, email
 	if err != nil {
 		return err
 	}
-	fmt.Println(email, token, time.Now().Unix())
 	if err != nil {
 		return err
 	}
