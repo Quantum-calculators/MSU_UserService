@@ -157,7 +157,7 @@ type SessionRepository interface {
 	//
 	// 	Input params:
 	//		1. context
-	//		2. UserID int
+	//		2. email string
 	//		3. FingerPrint string
 	// 	Output param:
 	//		1. type Session struct {
@@ -169,7 +169,7 @@ type SessionRepository interface {
 	//			CreatedAt    int64
 	//		}
 	//		2. error or nil
-	CreateSession(context.Context, uint32, string) (*model.Session, error)
+	CreateSession(context.Context, string, string) (*model.Session, error)
 	// Deletes the session with the specified fingerprint and Refresh Token.
 	//
 	// 	Input params:
