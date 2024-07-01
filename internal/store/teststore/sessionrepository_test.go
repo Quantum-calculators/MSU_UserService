@@ -16,7 +16,7 @@ func TestSessionRepository_CreateSession(t *testing.T) {
 	assert.NoError(t, s.User().Create(nil, u))
 	session := model.TestSession(t)
 	fmt.Println(u)
-	_, err := s.Session().CreateSession(nil, uint32(u.ID), session.Fingerprint)
+	_, err := s.Session().CreateSession(nil, u.Email, session.Fingerprint)
 	assert.NoError(t, err)
 }
 
@@ -27,7 +27,7 @@ func TestSessionRepository_VerifyRefreshToken(t *testing.T) {
 	u := model.TestUser(t)
 	assert.NoError(t, s.User().Create(nil, u))
 
-	session, err := s.Session().CreateSession(nil, uint32(u.ID), session.Fingerprint)
+	session, err := s.Session().CreateSession(nil, u.Email, session.Fingerprint)
 	assert.NoError(t, err)
 
 	_, err1 := s.Session().VerifyRefreshToken(nil, "invalidFingerprint", "invalidRefreshToken")
@@ -43,7 +43,7 @@ func TestSessionRepository_DeleteSession(t *testing.T) {
 	session := model.TestSession(t)
 	u := model.TestUser(t)
 	assert.NoError(t, s.User().Create(nil, u))
-	session, err := s.Session().CreateSession(nil, uint32(u.ID), session.Fingerprint)
+	session, err := s.Session().CreateSession(nil, u.Email, session.Fingerprint)
 	assert.NoError(t, err)
 
 	err1 := s.Session().DeleteSession(nil, session.Fingerprint, session.RefreshToken)
