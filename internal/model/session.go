@@ -1,8 +1,8 @@
 package model
 
 type Session struct {
-	ID           uint32
-	UserId       uint32
+	ID           int64
+	Email        string
 	RefreshToken string
 	Fingerprint  string
 	ExpiresIn    int64
