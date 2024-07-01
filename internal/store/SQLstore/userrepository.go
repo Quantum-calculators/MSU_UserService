@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"time"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
@@ -59,26 +60,25 @@ func (r *UserRepository) FindByEmail(ctxb context.Context, email string) (*model
 	return u, nil
 }
 
-func (r *UserRepository) UpdateEmail(ctxb context.Context, newEmail string, u *model.User) error {
+func (r *UserRepository) UpdateEmail(ctxb context.Context, email string, newEmail string) error {
 	ctx, cancel := context.WithTimeout(ctxb, r.store.QueryTimeout)
 	defer cancel()
 	if !model.ValidEmail(newEmail) {
 		return model.ErrInvalidEmail
 	}
-	if err := r.store.db.QueryRowContext(ctx, "UPDATE users SET email = $1 WHERE email = $2", newEmail, u.Email).Err(); err != nil {
+	if err := r.store.db.QueryRowContext(ctx, "UPDATE users SET email = $1 WHERE email = $2", newEmail, email).Err(); err != nil {
 		return store.ErrUpdateEmailFailed
 	}
-	u.Email = newEmail
 	return nil
 }
 
-func (r *UserRepository) UpdatePassword(ctxb context.Context, password string, u *model.User) error {
+func (r *UserRepository) UpdatePassword(ctxb context.Context, newPassword string, u *model.User) error {
 	ctx, cancel := context.WithTimeout(ctxb, r.store.QueryTimeout)
 	defer cancel()
-	if !model.ValidPassword(password) {
+	if !model.ValidPassword(newPassword) {
 		return model.ErrInvalidPass
 	}
-	u.Password = password
+	u.Password = newPassword
 	if err := u.BeforeCreate(); err != nil {
 		return err
 	}
@@ -151,4 +151,41 @@ func (r *UserRepository) CheckVerificationToken(ctxb context.Context, Email, tok
 		return true, nil
 	}
 	return false, nil
+}
+
+func (r *UserRepository) CreatePasswordRecoveryToken(ctxb context.Context, email string, token string) error {
+	ctx, cancel := context.WithTimeout(ctxb, r.store.QueryTimeout)
+	defer cancel()
+
+	err := r.store.db.QueryRowContext(ctx,
+		"DELETE FROM recovery_tokens WHERE email = $1",
+		email,
+	).Err()
+	if err != nil {
+		return err
+	}
+	return r.store.db.QueryRowContext(ctx,
+		"INSERT INTO recovery_tokens (email, token, created_at) VALUES $1, $2, $3;",
+		email,
+		token,
+		time.Now().Unix(),
+	).Err()
+}
+
+func (r *UserRepository) GetRecoveryPasswordToken(ctxb context.Context, email string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctxb, r.store.QueryTimeout)
+	defer cancel()
+
+	var validToken string
+	err := r.store.db.QueryRowContext(ctx,
+		"SELECT token FROM recovery_tokens WHERE email = $1;",
+		email,
+	).Scan(
+		validToken,
+	)
+	if err != nil {
+		return "", err
+	}
+	return validToken, nil
+
 }

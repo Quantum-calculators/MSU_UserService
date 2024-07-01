@@ -42,7 +42,7 @@ func TestUserRepository_UpdateEmail(t *testing.T) {
 
 	u2 := model.TestUser(t)
 	newEmailIncorrect := "IncorrectEmail"
-	err = s.User().UpdateEmail(nil, newEmailIncorrect, u2)
+	err = s.User().UpdateEmail(nil, u2.Email, newEmailIncorrect)
 
 	assert.Error(t, err)
 }

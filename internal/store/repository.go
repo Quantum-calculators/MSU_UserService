@@ -46,6 +46,7 @@ type UserRepository interface {
 	// 	Input params:
 	//		1. context
 	//		2. email string
+	//		3. newEmail string
 	// 	Output params:
 	//		1. type User struct {
 	// 			ID                int
@@ -57,13 +58,13 @@ type UserRepository interface {
 	//			Verified          bool
 	// 		}
 	// 		2. error or nil
-	UpdateEmail(context.Context, string, *model.User) error
+	UpdateEmail(context.Context, string, string) error
 	// Updates the user's password.
 	// Accepts a new password and user model as input.
 	//
 	// 	Input params:
 	//		1. context
-	//		2. password string
+	//		2. new password string
 	// 		3. type User struct {
 	// 			ID                int
 	// 			Email             string
@@ -106,6 +107,27 @@ type UserRepository interface {
 	CheckVerificationToken(context.Context, string, string) (bool, error)
 	// UpdateVerificationToken...
 	UpdateVerificationToken(context.Context, string, string) error
+	// CreatePasswordRecoveryToken создает токен восстановления
+	// пароля для пользователя с указанным email
+	//
+	// 	Input params:
+	//		1. context
+	//		2. Email string
+	//		3. Token string
+	// 	Output params:
+	//		1. error or nil
+	CreatePasswordRecoveryToken(context.Context, string, string) error
+	// GetkRecoveryPasswordToken возвращает первый найденный токен пользователя с указанным email
+	// т.к. при каждом повторном запросе токена для восстановления все предыдущие токены удаляются - возвращается
+	// всегда один токен
+	//
+	// 	Input params:
+	//		1. context
+	//		2. email string
+	// 	Output params:
+	//		1. Email string
+	//		2. error or nil
+	GetRecoveryPasswordToken(context.Context, string) (string, error)
 }
 
 type CacheRepository interface {
@@ -157,4 +179,12 @@ type SessionRepository interface {
 	// 	Output param:
 	//		1. error or nil
 	DeleteSession(context.Context, string, string) error
+	// DeleteAllSession удаляет все сессии пользователя.
+	//
+	// 	Input params:
+	//		1. context
+	//		2. Email string
+	// 	Output params:
+	//		1. error or nil
+	DeleteAllSession(context.Context, string) error
 }

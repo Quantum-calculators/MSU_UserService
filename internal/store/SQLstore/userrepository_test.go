@@ -54,11 +54,11 @@ func TestUserRepository_UpdateEmail(t *testing.T) {
 	s.User().Create(ctxb, u)
 
 	newEmail := "newEmail@test.com"
-	err1 := s.User().UpdateEmail(ctxb, newEmail, u)
+	err1 := s.User().UpdateEmail(ctxb, u.Email, newEmail)
 	assert.NoError(t, err1)
 
 	newEmailIncorrerct := "incorrectEmail"
-	err2 := s.User().UpdateEmail(ctxb, newEmailIncorrerct, u)
+	err2 := s.User().UpdateEmail(ctxb, u.Email, newEmailIncorrerct)
 	assert.Error(t, err2)
 }
 

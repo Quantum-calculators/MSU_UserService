@@ -3,14 +3,16 @@ package testStore
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store"
 )
 
 type UserRepository struct {
-	store *Store
-	users map[string]*model.User
+	store          *Store
+	users          map[string]*model.User
+	recoveryTokens map[string]*model.RecoveryToken
 }
 
 func (r *UserRepository) Create(ctxb context.Context, u *model.User) error {
@@ -39,14 +41,13 @@ func (r *UserRepository) FindByEmail(ctxb context.Context, email string) (*model
 	return u, nil
 }
 
-func (r *UserRepository) UpdateEmail(ctxb context.Context, newEmail string, u *model.User) error {
+func (r *UserRepository) UpdateEmail(ctxb context.Context, email string, newEmail string) error {
 	if !model.ValidEmail(newEmail) {
 		return model.ErrInvalidEmail
 	}
-	newU := r.users[u.Email]
+	newU := r.users[email]
 	newU.Email = newEmail
-	r.users[u.Email] = newU
-	u = newU
+	r.users[email] = newU
 	return nil
 }
 
@@ -98,4 +99,26 @@ func (r *UserRepository) UpdateVerificationToken(ctxb context.Context, Email, to
 	}
 	user.VerificationToken = token
 	return nil
+}
+
+func (r *UserRepository) CreatePasswordRecoveryToken(ctxb context.Context, email string, token string) error {
+	delete(r.recoveryTokens, email)
+	r.recoveryTokens[email] = &model.RecoveryToken{
+		Email:      email,
+		Token:      token,
+		Created_at: time.Now().Unix(),
+	}
+	_, ok := r.recoveryTokens[email]
+	if !ok {
+		return errors.New("data recording error")
+	}
+	return nil
+}
+
+func (r *UserRepository) GetRecoveryPasswordToken(ctxb context.Context, email string) (string, error) {
+	record, ok := r.recoveryTokens[email]
+	if !ok {
+		return "", store.ErrRecordNotFound
+	}
+	return record.Token, nil
 }
