@@ -1,6 +1,7 @@
 package testStore_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
@@ -121,4 +122,23 @@ func TestUserRepository_UpdateVerificationToken(t *testing.T) {
 	pass1, err := s.User().CheckVerificationToken(nil, u.Email, newVerToken)
 	assert.NoError(t, err)
 	assert.True(t, pass1)
+}
+
+func TestUserRepository_CreatePasswordRecoveryToken(t *testing.T) {
+	s := testStore.New()
+	u := model.TestUser(t)
+	err := s.User().Create(nil, u)
+	assert.NoError(t, err)
+
+	token1, _ := token_generator.GenerateRandomString(128)
+	fmt.Println(u)
+	err = s.User().CreatePasswordRecoveryToken(nil, u.Email, token1)
+	assert.NoError(t, err)
+
+	fmt.Println(token1)
+
+	token2, err := s.User().GetRecoveryPasswordToken(nil, u.Email)
+	assert.NoError(t, err)
+
+	assert.Equal(t, token1, token2)
 }

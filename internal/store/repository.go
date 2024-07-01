@@ -125,7 +125,7 @@ type UserRepository interface {
 	//		1. context
 	//		2. email string
 	// 	Output params:
-	//		1. Email string
+	//		1. Token string
 	//		2. error or nil
 	GetRecoveryPasswordToken(context.Context, string) (string, error)
 }
