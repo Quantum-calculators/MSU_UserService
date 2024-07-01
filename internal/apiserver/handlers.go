@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -166,7 +167,7 @@ func (s *server) Login() http.HandlerFunc {
 
 		// добавить проверку по полю Verified
 		expectedU.Sanitize()
-		session, err := s.store.Session().CreateSession(r.Context(), uint32(expectedU.ID), GetFingerPrint(r))
+		session, err := s.store.Session().CreateSession(r.Context(), expectedU.Email, GetFingerPrint(r))
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
@@ -240,7 +241,7 @@ func (s *server) AccessToken() http.HandlerFunc {
 			s.error(w, http.StatusUnauthorized, ErrorUserUnauth.Error())
 			return
 		}
-		user, err := s.store.User().GetUserByID(r.Context(), int(session.UserId))
+		user, err := s.store.User().FindByEmail(r.Context(), session.Email)
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
@@ -363,14 +364,11 @@ func (s *server) Verification() http.HandlerFunc {
 	}
 }
 
-// Пользователь делает запрос на PasswordRecovery,
-// далее ему отправляется письмо на email, где он переходит
-// по ссылке. Далее заполняя поле password пользователь
-// отправляет POST запрос формата: /confirm_p_r с body формата request
 func (s *server) СonfirmationPasswordRecovery() http.HandlerFunc {
 	type request struct {
-		NewPassword string `json:"newpassword"`
+		NewPassword string `json:"new_password"`
 		Token       string `json:"token"`
+		Email       string `json:"email"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -383,26 +381,33 @@ func (s *server) СonfirmationPasswordRecovery() http.HandlerFunc {
 			return
 		}
 
-		email, err := s.store.User().CheckRecoveryPasswordToken(r.Context(), req.Token) // <- проверяем на существование токена
-		switch {                                                                        // Если токен существует - возвращаем email
+		expectedToken, err := s.store.User().GetRecoveryPasswordToken(r.Context(), req.Email)
+		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
 			return
 		case errors.Is(err, sql.ErrNoRows):
-			s.error(w, http.StatusForbidden, "") // <- добавить ошибку
+			s.error(w, http.StatusForbidden, ErrNotFound.Error())
 			return
 		}
-		err = s.store.User().ChangePassword(r.Context(), email, req.NewPassword) // <- меняем пароль на переданный в запросе
+		if expectedToken != req.Token {
+			s.error(w, http.StatusForbidden, ErrorServer.Error())
+			return
+		}
+		u := &model.User{
+			Email: req.Email,
+		}
+		err = s.store.User().UpdatePassword(r.Context(), req.NewPassword, u)
+		fmt.Println(req.NewPassword)
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
 			return
 		case err != nil:
-			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+			s.error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
-		err = s.store.Session().DeleteAllSession(r.Context(), email) // <- разлогиневаем пользователя во всех сессиях
+		err = s.store.Session().DeleteAllSession(r.Context(), req.Email)
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
@@ -435,7 +440,10 @@ func (s *server) PasswordRecovery() http.HandlerFunc {
 			return
 		}
 		token, err := token_generator.GenerateRandomString(128)
-
+		if err != nil {
+			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+			return
+		}
 		err = s.store.User().CreatePasswordRecoveryToken(r.Context(), req.Email, token)
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
@@ -459,7 +467,7 @@ func (s *server) PasswordRecovery() http.HandlerFunc {
 	}
 }
 
-func (s *server) Login() http.HandlerFunc {
+func (s *server) ChangePassword() http.HandlerFunc {
 	type request struct {
 		Email       string `json:"email"`
 		Password    string `json:"password"`
