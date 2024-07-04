@@ -118,7 +118,7 @@ func (s *server) Login() http.HandlerFunc {
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
 			return
 		case errors.Is(err, store.ErrRecordNotFound): // <- плохо тянуть константы из зависимостей
-			s.error(w, http.StatusNotFound, ErrorNotFoundUserWithEmail.Error())
+			s.error(w, http.StatusForbidden, ErrorNotFoundUserWithEmail.Error())
 			return
 		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())

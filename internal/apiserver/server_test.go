@@ -18,8 +18,6 @@ func TestServer_RegistrationUser(t *testing.T) {
 	store := testStore.New()
 	Rstore := redisStore.New_Test()
 	broker := testbroker.New()
-	u := model.TestUser(t)
-	store.User().Create(nil, u)
 
 	testCases := []struct {
 		name         string
@@ -71,6 +69,84 @@ func TestServer_RegistrationUser(t *testing.T) {
 				return
 			}
 			req, _ := http.NewRequest(http.MethodPost, "/registration", bytes.NewReader(body))
+			s.ServeHTTP(rec, req)
+			assert.Equal(t, tc.expectedCode, rec.Code)
+		})
+	}
+}
+
+func TestServer_LoginUser(t *testing.T) {
+	store := testStore.New()
+	Rstore := redisStore.New_Test()
+	broker := testbroker.New()
+
+	testCases := []struct {
+		prepare      func()
+		name         string
+		payload      interface{}
+		expectedCode int
+	}{
+		{
+			prepare: func() {
+				u := &model.User{
+					Email:    "test1@mail.com",
+					Password: "valid_password",
+				}
+				store.User().Create(nil, u)
+				store.User().SetVerify(nil, u.Email, true)
+			},
+			name: "Login",
+			payload: map[string]interface{}{
+				"email":    "test1@mail.com",
+				"password": "valid_password",
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			prepare: func() {
+				u := &model.User{
+					Email:    "test2@mail.com",
+					Password: "valid_password",
+				}
+				store.User().Create(nil, u)
+				// store.User().SetVerify(nil, u.Email, true)  <- пользователь не прошел верификацию
+			},
+			name: "Login",
+			payload: map[string]interface{}{
+				"email":    "test2@mail.com",
+				"password": "valid_password",
+			},
+			expectedCode: http.StatusUnauthorized,
+		},
+		{
+			prepare: func() {
+				u := &model.User{
+					Email:    "test3@mail.com",
+					Password: "valid_password",
+				}
+				store.User().Create(nil, u)
+				store.User().SetVerify(nil, u.Email, true)
+			},
+			name: "Login",
+			payload: map[string]interface{}{
+				"email": "test2@mail.com", // 	<- в payload отсутствует необходимое поле
+			},
+			expectedCode: http.StatusUnauthorized,
+		},
+	}
+
+	secretKey := "secret"
+	s := newServer(store, Rstore, broker, 1000, secretKey)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.prepare()
+			rec := httptest.NewRecorder()
+			body, err := json.Marshal(tc.payload)
+			if err != nil {
+				assert.NoError(t, err)
+				return
+			}
+			req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
 			s.ServeHTTP(rec, req)
 			assert.Equal(t, tc.expectedCode, rec.Code)
 		})
