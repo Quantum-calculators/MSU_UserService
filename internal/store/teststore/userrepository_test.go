@@ -1,7 +1,6 @@
 package testStore_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
@@ -131,11 +130,8 @@ func TestUserRepository_CreatePasswordRecoveryToken(t *testing.T) {
 	assert.NoError(t, err)
 
 	token1, _ := token_generator.GenerateRandomString(128)
-	fmt.Println(u)
 	err = s.User().CreatePasswordRecoveryToken(nil, u.Email, token1)
 	assert.NoError(t, err)
-
-	fmt.Println(token1)
 
 	token2, err := s.User().GetRecoveryPasswordToken(nil, u.Email)
 	assert.NoError(t, err)

@@ -1,7 +1,6 @@
 package testStore_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
@@ -15,7 +14,6 @@ func TestSessionRepository_CreateSession(t *testing.T) {
 	u := model.TestUser(t)
 	assert.NoError(t, s.User().Create(nil, u))
 	session := model.TestSession(t)
-	fmt.Println(u)
 	_, err := s.Session().CreateSession(nil, u.Email, session.Fingerprint)
 	assert.NoError(t, err)
 }
