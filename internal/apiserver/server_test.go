@@ -1,0 +1,78 @@
+package apiserver
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/Quantum-calculators/MSU_UserService/internal/messageBroker/testbroker"
+	"github.com/Quantum-calculators/MSU_UserService/internal/model"
+	"github.com/Quantum-calculators/MSU_UserService/internal/store/redisStore"
+	"github.com/Quantum-calculators/MSU_UserService/internal/store/testStore"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestServer_RegistrationUser(t *testing.T) {
+	store := testStore.New()
+	Rstore := redisStore.New_Test()
+	broker := testbroker.New()
+	u := model.TestUser(t)
+	store.User().Create(nil, u)
+
+	testCases := []struct {
+		name         string
+		payload      interface{}
+		expectedCode int
+	}{
+		{
+			name: "registration",
+			payload: map[string]interface{}{
+				"email":    "test1@mail.com",
+				"password": "valid_password",
+			},
+			expectedCode: http.StatusCreated,
+		},
+		{
+			name: "registration",
+			payload: map[string]interface{}{
+				"email":    "test2@mail.com",
+				"password": "invalid", // слишком короткий пароль
+			},
+			expectedCode: http.StatusForbidden,
+		},
+		{
+			name: "registration",
+			payload: map[string]interface{}{
+				"invalid_payload": "test3@mail.com", // неверное поле тела запроса
+				"password":        "valid_password",
+			},
+			expectedCode: http.StatusForbidden,
+		},
+		{
+			name: "registration",
+			payload: map[string]interface{}{
+				"invalid_payload": "test1@mail.com", // email такой же как у 1-ого пользователя
+				"password":        "valid_password",
+			},
+			expectedCode: http.StatusForbidden,
+		},
+	}
+
+	secretKey := "secret"
+	s := newServer(store, Rstore, broker, 1000, secretKey)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			body, err := json.Marshal(tc.payload)
+			if err != nil {
+				assert.NoError(t, err)
+				return
+			}
+			req, _ := http.NewRequest(http.MethodPost, "/registration", bytes.NewReader(body))
+			s.ServeHTTP(rec, req)
+			assert.Equal(t, tc.expectedCode, rec.Code)
+		})
+	}
+}
