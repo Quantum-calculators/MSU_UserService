@@ -324,11 +324,11 @@ func (s *server) Registration() http.HandlerFunc {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
+		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(u); err != nil {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
-		// w.WriteHeader(http.StatusCreated)
 	}
 }
 
