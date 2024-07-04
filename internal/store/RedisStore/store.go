@@ -1,4 +1,4 @@
-package RedisStore
+package redisStore
 
 import (
 	"time"
@@ -29,4 +29,8 @@ func (s *Store) Cache(accessExpTime time.Duration) store.CacheRepository {
 	}
 
 	return s.cache
+}
+
+func New_Test() *Store {
+	return &Store{}
 }
