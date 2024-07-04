@@ -346,21 +346,29 @@ func (s *server) Verification() http.HandlerFunc {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
 			return
-		case err != nil:
-			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
-			return
-		}
-		err = s.store.User().SetVerify(r.Context(), email, ok)
-
-		switch {
-		case errors.Is(err, context.DeadlineExceeded):
-			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+		case errors.Is(err, store.ErrRecordNotFound):
+			s.error(w, http.StatusNotFound, ErrNotFound.Error())
 			return
 		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
-		w.WriteHeader(http.StatusOK)
+		if ok {
+			err = s.store.User().SetVerify(r.Context(), email, ok)
+			switch {
+			case errors.Is(err, context.DeadlineExceeded):
+				s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+				return
+			case errors.Is(err, store.ErrRecordNotFound):
+				s.error(w, http.StatusBadRequest, ErrNotFound.Error())
+				return
+			case err != nil:
+				s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+		}
+		w.WriteHeader(http.StatusNotAcceptable)
 	}
 }
 

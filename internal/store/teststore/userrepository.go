@@ -83,7 +83,7 @@ func (r *UserRepository) SetVerify(ctxb context.Context, Email string, verify bo
 func (r *UserRepository) CheckVerificationToken(ctxb context.Context, Email, token string) (bool, error) {
 	_, ok := r.users[Email]
 	if !ok {
-		return false, errors.New("user not found")
+		return false, store.ErrRecordNotFound
 	}
 
 	if r.users[Email].VerificationToken == token {
