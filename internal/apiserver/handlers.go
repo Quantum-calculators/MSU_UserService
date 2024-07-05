@@ -167,6 +167,10 @@ func (s *server) Login() http.HandlerFunc {
 		}
 
 		// добавить проверку по полю Verified
+		if len(req.FingerPrint) < 1 {
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
+			return
+		}
 		expectedU.Sanitize()
 		session, err := s.store.Session().CreateSession(r.Context(), expectedU.Email, req.FingerPrint)
 		switch {
@@ -203,6 +207,10 @@ func (s *server) Logout() http.HandlerFunc {
 			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
 			return
 		}
+		if len(req.FingerPrint) < 1 {
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
+			return
+		}
 		err := s.store.Session().DeleteSession(r.Context(), req.FingerPrint, req.RefreshToken)
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
@@ -232,6 +240,10 @@ func (s *server) AccessToken() http.HandlerFunc {
 		}
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
+			return
+		}
+		if len(req.FingerPrint) < 1 {
 			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
 			return
 		}
