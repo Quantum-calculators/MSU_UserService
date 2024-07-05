@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	rabbitmq "github.com/Quantum-calculators/MSU_UserService/configs/RabbitMQ"
 	apiserverConf "github.com/Quantum-calculators/MSU_UserService/configs/apiserver"
 	postgres "github.com/Quantum-calculators/MSU_UserService/configs/postgres"
+	rabbitmq "github.com/Quantum-calculators/MSU_UserService/configs/rabbitMQ"
 	redisConf "github.com/Quantum-calculators/MSU_UserService/configs/redis"
 	messagebroker "github.com/Quantum-calculators/MSU_UserService/internal/messageBroker/AMQPbroker"
-	"github.com/Quantum-calculators/MSU_UserService/internal/store/RedisStore"
 	"github.com/Quantum-calculators/MSU_UserService/internal/store/SQLstore"
+	RedisStore "github.com/Quantum-calculators/MSU_UserService/internal/store/redisStore"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
 )

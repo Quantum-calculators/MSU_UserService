@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Quantum-calculators/MSU_UserService/internal/model"
+	"github.com/Quantum-calculators/MSU_UserService/internal/store"
 	token_generator "github.com/Quantum-calculators/MSU_UserService/internal/tokenGenerator"
 )
 
@@ -26,7 +27,7 @@ func (s *SessionRepository) CreateSession(cxt context.Context, email string, fin
 		ExpiresIn:    time.Now().Add(time.Duration(6 * 10e10)).Unix(),
 		CreatedAt:    time.Now().Unix(),
 	}
-	s.sessions[refreshToken] = session
+	s.sessions[email] = session
 	return session, nil
 }
 
@@ -50,16 +51,18 @@ func (s *SessionRepository) VerifyRefreshToken(cxt context.Context, fingerPrint,
 }
 
 func (s *SessionRepository) DeleteSession(cxt context.Context, fingerPrint, refreshToken string) error {
-	_, ok := s.sessions[refreshToken]
-	if !ok {
-		return errors.New("session not found")
+	var ok bool = false
+	for i, j := range s.sessions {
+		if j.Fingerprint == fingerPrint && j.RefreshToken == refreshToken {
+			ok = true
+			delete(s.sessions, i)
+		}
 	}
-	delete(s.sessions, refreshToken)
-	_, ok = s.sessions[refreshToken]
 	if ok {
-		return errors.New("deleting error")
+		return nil
 	}
-	return nil
+	return store.ErrRecordNotFound
+
 }
 
 func (s *SessionRepository) DeleteAllSession(ctxb context.Context, email string) error {

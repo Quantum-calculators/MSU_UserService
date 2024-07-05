@@ -93,8 +93,9 @@ func (s *server) Methods() http.HandlerFunc {
 
 func (s *server) Login() http.HandlerFunc {
 	type request struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email       string `json:"email"`
+		Password    string `json:"password"`
+		FingerPrint string `json:"fingerPrint"`
 	}
 	type response struct {
 		RefreshToken    string `json:"refreshToken"`
@@ -118,7 +119,7 @@ func (s *server) Login() http.HandlerFunc {
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
 			return
 		case errors.Is(err, store.ErrRecordNotFound): // <- плохо тянуть константы из зависимостей
-			s.error(w, http.StatusNotFound, ErrorNotFoundUserWithEmail.Error())
+			s.error(w, http.StatusForbidden, ErrorNotFoundUserWithEmail.Error())
 			return
 		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
@@ -166,8 +167,12 @@ func (s *server) Login() http.HandlerFunc {
 		}
 
 		// добавить проверку по полю Verified
+		if len(req.FingerPrint) < 1 {
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
+			return
+		}
 		expectedU.Sanitize()
-		session, err := s.store.Session().CreateSession(r.Context(), expectedU.Email, GetFingerPrint(r))
+		session, err := s.store.Session().CreateSession(r.Context(), expectedU.Email, req.FingerPrint)
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
@@ -190,6 +195,7 @@ func (s *server) Login() http.HandlerFunc {
 func (s *server) Logout() http.HandlerFunc {
 	type request struct {
 		RefreshToken string `json:"refreshToken"`
+		FingerPrint  string `json:"fingerPrint"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
@@ -201,10 +207,17 @@ func (s *server) Logout() http.HandlerFunc {
 			s.error(w, http.StatusUnprocessableEntity, ErrorServer.Error())
 			return
 		}
-		err := s.store.Session().DeleteSession(r.Context(), GetFingerPrint(r), req.RefreshToken)
+		if len(req.FingerPrint) < 1 {
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
+			return
+		}
+		err := s.store.Session().DeleteSession(r.Context(), req.FingerPrint, req.RefreshToken)
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case errors.Is(err, store.ErrRecordNotFound):
+			s.error(w, http.StatusNotFound, ErrNotFound.Error())
 			return
 		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
@@ -216,6 +229,7 @@ func (s *server) Logout() http.HandlerFunc {
 func (s *server) AccessToken() http.HandlerFunc {
 	type request struct {
 		RefreshToken string `json:"refreshToken"`
+		FingerPrint  string `json:"fingerPrint"`
 	}
 	type response struct {
 		AccessToken     string `json:"accessToken"`
@@ -232,7 +246,11 @@ func (s *server) AccessToken() http.HandlerFunc {
 			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
 			return
 		}
-		session, err := s.store.Session().VerifyRefreshToken(r.Context(), GetFingerPrint(r), req.RefreshToken)
+		if len(req.FingerPrint) < 1 {
+			s.error(w, http.StatusUnprocessableEntity, ErrorRequestFields.Error())
+			return
+		}
+		session, err := s.store.Session().VerifyRefreshToken(r.Context(), req.FingerPrint, req.RefreshToken)
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
@@ -245,6 +263,9 @@ func (s *server) AccessToken() http.HandlerFunc {
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case errors.Is(err, store.ErrRecordNotFound):
+			s.error(w, http.StatusNotFound, ErrNotFound.Error())
 			return
 		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
@@ -324,11 +345,11 @@ func (s *server) Registration() http.HandlerFunc {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
+		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(u); err != nil {
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
-		// w.WriteHeader(http.StatusCreated)
 	}
 }
 
@@ -346,21 +367,29 @@ func (s *server) Verification() http.HandlerFunc {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
 			return
-		case err != nil:
-			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
-			return
-		}
-		err = s.store.User().SetVerify(r.Context(), email, ok)
-
-		switch {
-		case errors.Is(err, context.DeadlineExceeded):
-			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+		case errors.Is(err, store.ErrRecordNotFound):
+			s.error(w, http.StatusNotFound, ErrNotFound.Error())
 			return
 		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
 		}
-		w.WriteHeader(http.StatusOK)
+		if ok {
+			err = s.store.User().SetVerify(r.Context(), email, ok)
+			switch {
+			case errors.Is(err, context.DeadlineExceeded):
+				s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+				return
+			case errors.Is(err, store.ErrRecordNotFound):
+				s.error(w, http.StatusBadRequest, ErrNotFound.Error())
+				return
+			case err != nil:
+				s.error(w, http.StatusInternalServerError, ErrorServer.Error())
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+		}
+		w.WriteHeader(http.StatusNotAcceptable)
 	}
 }
 
