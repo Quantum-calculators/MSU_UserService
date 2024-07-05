@@ -323,3 +323,90 @@ func TestServer_AccessToken(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_Logout(t *testing.T) {
+	store := testStore.New()
+	Rstore := redisStore.New_Test()
+	broker := testbroker.New()
+
+	testCases := []struct {
+		prepare      func() string
+		name         string
+		payload      map[string]interface{}
+		expectedCode int
+	}{
+		{
+			prepare: func() string {
+				u := &model.User{
+					Email:    "test1@mail.com",
+					Password: "valid_password",
+				}
+				store.User().Create(nil, u)
+				store.User().SetVerify(nil, u.Email, true)
+				s, _ := store.Session().CreateSession(nil, u.Email, "finger_print")
+				return s.RefreshToken
+			},
+			name: "Logout_1",
+			payload: map[string]interface{}{
+				"refreshToken": "",
+				"fingerPrint":  "finger_print",
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			prepare: func() string {
+				u := &model.User{
+					Email:    "test2@mail.com",
+					Password: "valid_password",
+				}
+				store.User().Create(nil, u)
+				store.User().SetVerify(nil, u.Email, true)
+				// s, _ := store.Session().CreateSession(nil, u.Email, "finger_print")
+				// return s.RefreshToken			<- сессия не создавалась, пользователь не может из нее выйты
+				return ""
+			},
+			name: "Logout_2",
+			payload: map[string]interface{}{
+				"refreshToken": "",
+				"fingerPrint":  "finger_print",
+			},
+			expectedCode: http.StatusNotFound,
+		},
+		{
+			prepare: func() string {
+				u := &model.User{
+					Email:    "test3@mail.com",
+					Password: "valid_password",
+				}
+				store.User().Create(nil, u)
+				store.User().SetVerify(nil, u.Email, true)
+				s, _ := store.Session().CreateSession(nil, u.Email, "finger_print")
+				return s.RefreshToken
+			},
+			name: "Logout_3",
+			payload: map[string]interface{}{
+				"refreshToken": "",
+				"fingerPrint":  "invalid",
+			},
+			expectedCode: http.StatusNotFound,
+		},
+	}
+
+	secretKey := "secret"
+	s := newServer(store, Rstore, broker, 1000, secretKey)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rt := tc.prepare()
+			tc.payload["refreshToken"] = rt
+			rec := httptest.NewRecorder()
+			body, err := json.Marshal(tc.payload)
+			if err != nil {
+				assert.NoError(t, err)
+				return
+			}
+			req, _ := http.NewRequest(http.MethodPost, "/logout", bytes.NewReader(body))
+			s.ServeHTTP(rec, req)
+			assert.Equal(t, tc.expectedCode, rec.Code)
+		})
+	}
+}
