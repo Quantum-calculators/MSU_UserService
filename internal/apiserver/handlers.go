@@ -216,6 +216,9 @@ func (s *server) Logout() http.HandlerFunc {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
 			return
+		case errors.Is(err, store.ErrRecordNotFound):
+			s.error(w, http.StatusNotFound, ErrNotFound.Error())
+			return
 		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
 			return
@@ -260,6 +263,9 @@ func (s *server) AccessToken() http.HandlerFunc {
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
 			s.error(w, http.StatusGatewayTimeout, ErrorServer.Error())
+			return
+		case errors.Is(err, store.ErrRecordNotFound):
+			s.error(w, http.StatusNotFound, ErrNotFound.Error())
 			return
 		case err != nil:
 			s.error(w, http.StatusInternalServerError, ErrorServer.Error())
