@@ -98,8 +98,9 @@ func TestServer_LoginUser(t *testing.T) {
 			},
 			name: "Login",
 			payload: map[string]interface{}{
-				"email":    "test1@mail.com",
-				"password": "valid_password",
+				"email":       "test1@mail.com",
+				"password":    "valid_password",
+				"fingerPrint": "finger_print",
 			},
 			expectedCode: http.StatusOK,
 		},
@@ -114,8 +115,9 @@ func TestServer_LoginUser(t *testing.T) {
 			},
 			name: "Login",
 			payload: map[string]interface{}{
-				"email":    "test2@mail.com",
-				"password": "valid_password",
+				"email":       "test2@mail.com",
+				"password":    "valid_password",
+				"fingerPrint": "finger_print",
 			},
 			expectedCode: http.StatusUnauthorized,
 		},
@@ -130,11 +132,12 @@ func TestServer_LoginUser(t *testing.T) {
 			},
 			name: "Login",
 			payload: map[string]interface{}{
-				"email": "test2@mail.com", // 	<- в payload отсутствует необходимое поле
+				"email":       "test2@mail.com", // 	<- в payload отсутствует необходимое поле
+				"fingerPrint": "finger_print",
 			},
 			expectedCode: http.StatusUnauthorized,
-		},
-	}
+		}, // 											<- 	добавить тестов, т.к. отсутствие fingerPrint не влияет
+	} //													на результаты тестов
 
 	secretKey := "secret"
 	s := newServer(store, Rstore, broker, 1000, secretKey)
@@ -228,6 +231,93 @@ func TestServer_VerificationUser(t *testing.T) {
 			}
 			addr := fmt.Sprintf("/verification/%s/%s", tc.payload[0], tc.payload[1])
 			req, _ := http.NewRequest(http.MethodGet, addr, bytes.NewReader(body))
+			s.ServeHTTP(rec, req)
+			assert.Equal(t, tc.expectedCode, rec.Code)
+		})
+	}
+}
+
+func TestServer_AccessToken(t *testing.T) {
+	store := testStore.New()
+	Rstore := redisStore.New_Test()
+	broker := testbroker.New()
+
+	testCases := []struct {
+		prepare      func() string
+		name         string
+		payload      map[string]interface{}
+		expectedCode int
+	}{
+		{
+			prepare: func() string {
+				u := &model.User{
+					Email:    "test1@mail.com",
+					Password: "valid_password",
+				}
+				store.User().Create(nil, u)
+				store.User().SetVerify(nil, u.Email, true)
+				s, _ := store.Session().CreateSession(nil, u.Email, "finger_print")
+				return s.RefreshToken
+			},
+			name: "AccessToken",
+			payload: map[string]interface{}{
+				"refreshToken": "",
+				"fingerPrint":  "finger_print",
+			},
+			expectedCode: http.StatusOK,
+		},
+		{
+			prepare: func() string {
+				u := &model.User{
+					Email:    "test1@mail.com",
+					Password: "valid_password",
+				}
+				store.User().Create(nil, u)
+				store.User().SetVerify(nil, u.Email, true)
+				s, _ := store.Session().CreateSession(nil, u.Email, "finger_print")
+				return s.RefreshToken
+			},
+			name: "AccessToken",
+			payload: map[string]interface{}{
+				"refreshToken": "",
+				// "fingerPrint":  "finger_print", 				<- отсутствует поле fingerPrint
+			},
+			expectedCode: http.StatusUnprocessableEntity,
+		},
+		{
+			prepare: func() string {
+				u := &model.User{
+					Email:    "test1@mail.com",
+					Password: "valid_password",
+				}
+				store.User().Create(nil, u)
+				store.User().SetVerify(nil, u.Email, true)
+				//  s, _ := store.Session().CreateSession(nil, u.Email, "finger_print")  <- сессия не создана == пользователь
+				// return s.RefreshToken 													зарегистрировался, но ни разу не входил в
+				return "" //																аккаунт
+			},
+			name: "AccessToken",
+			payload: map[string]interface{}{
+				"refreshToken": "", // 									<- то есть refreshToken будет пустым
+				"fingerPrint":  "finger_print",
+			},
+			expectedCode: http.StatusUnauthorized,
+		},
+	}
+
+	secretKey := "secret"
+	s := newServer(store, Rstore, broker, 1000, secretKey)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			rt := tc.prepare()
+			tc.payload["refreshToken"] = rt
+			rec := httptest.NewRecorder()
+			body, err := json.Marshal(tc.payload)
+			if err != nil {
+				assert.NoError(t, err)
+				return
+			}
+			req, _ := http.NewRequest(http.MethodGet, "/access_token", bytes.NewReader(body))
 			s.ServeHTTP(rec, req)
 			assert.Equal(t, tc.expectedCode, rec.Code)
 		})
