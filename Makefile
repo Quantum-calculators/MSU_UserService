@@ -1,5 +1,11 @@
-.PHUNY: build
+.PHUNY: build, test, all
 build: 
 	go build -v cmd/apiserver/main.go
 
-.DEFAULT_GOAL := build
+test:
+	go test ./internal/store/testStore
+	go test ./internal/apiserver
+
+all: test build
+
+.DEFAULT_GOAL := all
